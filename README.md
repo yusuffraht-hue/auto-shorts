@@ -57,3 +57,42 @@ The two video workflows can use a FreeLLMAPI gateway as their first story-genera
 6. Optionally add `FREELLMAPI_MODEL` as a variable. It defaults to `auto`, allowing FreeLLMAPI to select a model from its configured routing pool.
 
 Keep the gateway private where possible, use HTTPS, restrict who can reach it, and rotate the unified key if it is exposed. Do not put the key in workflow YAML, repository variables, source files, or chat. This integration does not deploy or host FreeLLMAPI for you; the gateway must be running and reachable before a workflow can use it.
+
+## Optional free research and skill security tools
+
+These tools are optional helpers for preparing stories and reviewing agent extensions. They do not add a paid API dependency to the video pipeline.
+
+### Agent Reach (local research helper)
+
+[Agent Reach](https://github.com/Panniantong/agent-reach) is an open-source capability installer for an AI coding assistant. It can help research public web pages, YouTube transcripts, RSS feeds and public GitHub repositories. It is designed to run on your own computer alongside an agent that can execute shell commands; it is **not** a hosted API that GitHub Actions automatically calls during video generation.
+
+On a Linux machine with Python and pip available, use its safe setup path:
+
+```bash
+python3 -m venv ~/.venvs/agent-reach
+source ~/.venvs/agent-reach/bin/activate
+python -m pip install --upgrade pip
+python -m pip install https://github.com/Panniantong/agent-reach/archive/main.zip
+agent-reach install --env=auto --safe
+agent-reach doctor
+```
+
+Use the assistant to read sources before writing a recap, for example: ask it to read official episode/chapter pages or public reference pages and summarize only facts supported by those sources. Some channels need a logged-in browser session or cookies; do not export or share account cookies unless you understand the risk. Web semantic search may require a free Exa key. Reddit is not zero-config. Agent Reach's own documentation lists the platform-specific setup requirements: [Agent Reach guide](https://github.com/Panniantong/agent-reach/blob/main/docs/README_en.md).
+
+### NVIDIA SkillSpector (static security checks)
+
+[NVIDIA SkillSpector](https://github.com/NVIDIA/skillspector) scans agent skill bundles for suspicious instructions, dangerous code patterns and supply-chain risks. Static mode does not need an LLM API key:
+
+```bash
+python3 -m pip install --user 'git+https://github.com/NVIDIA/skillspector.git'
+skillspector scan ./path/to/skill --no-llm
+```
+
+This repository also includes a GitHub Actions check that scans any committed `SKILL.md` skill folders on pull requests. If the repository contains no skill bundles, the check reports that it skipped rather than pretending a scan happened. SkillSpector is defense-in-depth, not a sandbox; inspect findings and do not install a skill just because it receives a low score. See [NVIDIA's scanning guide](https://docs.nvidia.com/skills/scanning-agent-skills).
+
+### What remains free, and what does not
+
+- Agent Reach and SkillSpector are open-source tools; their upstream services, platform access and optional integrations can still have limits or require account setup.
+- Neither tool generates video. Video images still use the existing Pollinations endpoint, which may throttle or change its free access.
+- FreeLLMAPI remains optional and requires a reachable gateway plus a working upstream model. This project does not assume that a gateway or unlimited free model capacity exists.
+- Edge TTS and GitHub Actions are external services with their own availability and usage limits. No zero-cost setup can guarantee unlimited generation.
