@@ -93,7 +93,11 @@ def build_anime(hist, avoid=()):
     if want in WORKS:
         work = want
     else:
-        names = [w for w in WORKS if w not in avoid] or list(WORKS)
+        names = [w for w, (_, known) in WORKS.items() if known and w not in avoid]
+        if not names:
+            names = [w for w, (_, known) in WORKS.items() if known]
+        if not names:
+            raise RuntimeError("No verified works are configured")
         work = min(names, key=lambda w: sum(1 for e in hist["episodes"] if e.get("work") == w))
     hint, known = WORKS[work]
     if not known:
