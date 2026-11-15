@@ -9,7 +9,7 @@ TRIES = [
      ["openai/gpt-4o-mini"], 1),
     ("https://text.pollinations.ai/openai",
      {"Content-Type": "application/json"},
-     ["openai"], 5),
+     ["openai-fast"], 8),
 ]
 SUFFIX = ("\nUse plain ASCII only: straight quotes, no curly quotes, no em-dashes, "
           "no double quotes inside text values. Output raw JSON only.")
@@ -65,15 +65,16 @@ def call_llm(prompt):
             for _ in range(attempts):
                 nonce = f"\n(variation id: {random.randint(10**6, 10**9)})"
                 try:
-                    r = requests.post(url, headers=headers, timeout=120, json={
-                        "model": model, "temperature": 1.0, "max_tokens": 4000,
+                    r = requests.post(url, headers=headers, timeout=180, json={
+                        "model": model, "temperature": 1.0, "max_tokens": 6000,
                         "seed": random.randint(1, 10**8),
                         "messages": [{"role": "user", "content": prompt + SUFFIX + nonce}]})
                     print("llm:", url.split("/")[2], model, r.status_code, repr(r.content[:200]))
                     if r.status_code != 200 or not r.content.strip():
                         if "github" in url:
                             break
-                        time.sleep(4)
+                        m = re.search(r"Retry after (\d+)s", r.text)
+                        time.sleep(int(m.group(1)) + 3 if m else 20)
                         continue
                     out = r.json()["choices"][0]["message"]["content"] or ""
                     try:
@@ -82,6 +83,8 @@ def call_llm(prompt):
                         print("llm bad json:", repr(e), repr(out[:300]))
                 except Exception as e:
                     print("llm error:", url.split("/")[2], model, repr(e))
-                    break
+                    if "github" in url:
+                        break
+                    continue
                 time.sleep(3)
     raise RuntimeError("No LLM endpoint returned a usable script (see 'llm' lines above)")

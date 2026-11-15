@@ -69,20 +69,25 @@ Exactly 7 scenes."""
 
 
 def get_image(prompt, path, seed):
+    """Pollinations free tier allows 1 image per ~45s per IP, so wait out 402 limits."""
     base = "https://image.pollinations.ai/prompt/" + urllib.parse.quote(prompt)
-    for attempt in range(5):
-        model = "&model=flux" if attempt < 3 else ""
+    for attempt in range(12):
+        model = "&model=flux" if attempt < 8 else ""
         url = f"{base}?width=1080&height=1920&nologo=true&seed={seed}{model}"
+        wait = 10
         try:
             r = requests.get(url, timeout=240)
             ok = r.status_code == 200 and r.content[:3] in (b"\xff\xd8\xff", b"\x89PN")
-            print("image:", r.status_code, len(r.content), "ok" if ok else "BAD")
+            print("image:", r.status_code, len(r.content), "ok" if ok else r.text[:120])
             if ok:
                 path.write_bytes(r.content)
+                time.sleep(3)
                 return
+            m = re.search(r"Retry after (\d+)s", r.text)
+            wait = int(m.group(1)) + 3 if m else 20
         except requests.RequestException as e:
             print("image retry:", e)
-        time.sleep(8 * (attempt + 1))
+        time.sleep(wait)
     raise RuntimeError("image generation failed")
 
 
