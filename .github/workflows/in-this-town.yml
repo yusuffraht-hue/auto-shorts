@@ -1,18 +1,23 @@
-name: daily-short
+name: in-this-town
 
 on:
   schedule:
-    - cron: "0 15 * * *"   # once a day, 15:00 UTC. Change as you like.
-  workflow_dispatch:        # lets you run it by hand from the Actions tab
+    - cron: "0 15 * * *"   # daily 15:00 UTC
+  workflow_dispatch:        # run by hand from the Actions tab
 
 permissions:
-  contents: read
+  contents: write           # lets the job save episode history
   models: read
+
+concurrency:
+  group: in-this-town
 
 jobs:
   make:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 50
+    env:
+      SERIES: town
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -29,15 +34,24 @@ jobs:
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
           YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
           YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}   # optional, free: aistudio.google.com/apikey
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}       # optional, free: console.groq.com
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           PRIVACY: ${{ vars.PRIVACY || 'private' }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: short
+          name: in-this-town
           path: |
             out/final.mp4
             out/story.txt
           retention-days: 7
           if-no-files-found: ignore
+      - name: Save episode history
+        if: success()
+        run: |
+          git config user.name "auto-shorts-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add history
+          git diff --cached --quiet && exit 0
+          git commit -m "history: ${SERIES}"
+          for i in 1 2 3 4; do git pull --rebase origin main && git push origin HEAD:main && break || sleep 5; done
