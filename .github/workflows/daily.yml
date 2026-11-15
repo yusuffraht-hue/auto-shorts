@@ -1,8 +1,6 @@
 name: daily-short
 
 on:
-  push:
-    branches: [main]
   schedule:
     - cron: "0 15 * * *"   # once a day, 15:00 UTC
   workflow_dispatch:
