@@ -74,7 +74,10 @@ def write_script():
                  "points from any anime, manga, manhwa, light novel or game.")
         kind = "original"
     prompt = f"""You are a top YouTube Shorts story writer. {brief}
-Length: 10 scenes, about 45 seconds spoken. Structure:
+Write TWO versions of the SAME story: (a) "full_story", a complete, well-written telling of the whole story
+in 250-400 words, 3-5 short paragraphs, easy to read in a caption; (b) "scenes", a SUMMARIZED version of it
+for a 45-second video, 10 scenes. Scene 10 must end by telling viewers the full story is in the caption.
+Video structure:
 1 HOOK: the first line must stop the scroll (an impossible rule, shocking claim or question).
 2-4 SETUP: introduce the hero and what they want, concrete and visual.
 5-8 ESCALATE: every scene adds a NEW problem, discovery or reversal; cause leads to effect.
@@ -86,15 +89,21 @@ Trend inspiration (optional, ignore if it does not fit): {trend_ideas()}
 Return ONLY JSON:
 {{"title": "curiosity-driven title under 60 chars", "description": "2 sentences", "tags": ["..."],
   "hero": "visual description of the main character in 15 words (blocky toy character, clothes, hair)",
+  "full_story": "the complete 250-400 word story, paragraphs separated by two newlines",
   "scenes": [{{"line": "narration", "image_prompt": "what we SEE: setting, action, camera angle, lighting, mood"}}]}}
 Exactly 10 scenes."""
     data = json.loads(call_llm(prompt))
     data["tags"] = list(dict.fromkeys(BASE_TAGS + data.get("tags", [])))[:15]
+    story = (data.get("full_story") or " ".join(sc["line"] for sc in data["scenes"])).strip()
+    story = story.replace("<", "").replace(">", "")
     if kind == "classic":
-        data["description"] += "\n\nA retelling of a public-domain classic in a blocky toy-world style."
+        note = "A retelling of a public-domain classic in a blocky toy-world style."
     else:
-        data["description"] += ("\n\nOriginal story inspired by common anime, manga, manhwa and "
-                                "light-novel tropes. Not affiliated with any studio or publisher.")
+        note = ("Original story inspired by common anime, manga, manhwa and light-novel tropes. "
+                "Not affiliated with any studio or publisher.")
+    data["full_story"] = story
+    data["description"] = (data.get("description", "").strip() + "\n\nFULL STORY:\n" + story
+                           + "\n\n" + note)[:4700]
     return data
 
 
@@ -235,6 +244,8 @@ def upload_youtube(path, data):
 if __name__ == "__main__":
     data = write_script()
     print(json.dumps(data, indent=2))
+    (OUT / "story.txt").write_text(data["title"] + "\n\n" + data["full_story"] + "\n\n"
+                                   + " ".join("#" + t.replace(" ", "") for t in data["tags"]))
     video = build_video(data)
     if all(os.environ.get(k) for k in ("YT_CLIENT_ID", "YT_CLIENT_SECRET", "YT_REFRESH_TOKEN")):
         upload_youtube(video, data)
