@@ -2,12 +2,12 @@ name: daily-short
 
 on:
   schedule:
-    - cron: "0 15 * * *"   # once a day, 15:00 UTC. Change as you like.
-  workflow_dispatch:        # lets you run it by hand from the Actions tab
+    - cron: "0 15 * * *"   # once a day, 15:00 UTC
+  workflow_dispatch:
 
 permissions:
   contents: read
-  models: read              # lets GITHUB_TOKEN call GitHub Models for free
+  models: read
 
 jobs:
   make:
@@ -29,8 +29,10 @@ jobs:
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
           YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
           YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
-          PRIVACY: ${{ vars.PRIVACY || 'private' }}   # stays private until you set the PRIVACY variable to public
+          PRIVACY: ${{ vars.PRIVACY || 'private' }}
           MODEL: ${{ vars.MODEL || 'openai/gpt-4o-mini' }}
+          VOICE: ${{ vars.VOICE || 'en-US-BrianNeural' }}
+          RATE: ${{ vars.RATE || '-5%' }}
       - uses: actions/upload-artifact@v4
         with:
           name: short
