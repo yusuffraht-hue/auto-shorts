@@ -28,16 +28,16 @@ STYLE_ANIME = ("cinematic dark-fantasy digital illustration, dramatic rim lighti
                "vertical composition, highly detailed, no text, no logos, no watermark")
 
 VIDEO_RULES = """Write TWO versions of the SAME story:
-(a) "full_story": 180-240 words, 3-4 short paragraphs, readable as a caption.
+(a) "full_story": 140-180 words, 3 short paragraphs, readable as a caption.
 (b) "scenes": exactly 10 scenes for a 45-second video.
-Each scene line is 5-10 spoken words. Each image_prompt is 8-16 visual words.
+Each scene line is 5-10 natural spoken words. Use contractions where natural, varied sentence openings, simple vivid language, and punctuation that creates realistic pauses. Each image_prompt is 8-16 visual words.
 Scene 10 must end by telling viewers the full story is in the caption.
-1 HOOK: impossible rule, shocking claim or question.
+1 HOOK: start immediately with the strangest rule, danger, or unanswered question. No greeting or setup before the hook.
 2-4 SETUP: introduce hero and goal with concrete visuals.
-5-8 ESCALATE: every scene adds a new problem, discovery or reversal.
+5-8 ESCALATE: every scene adds a new problem, discovery or reversal; avoid repeating information.
 9 TWIST: reveal that changes what viewers thought.
-10 END: punchy comment-worthy line plus caption callout.
-Spoken narration only. No stage directions, no filler, family-friendly.
+10 END: finish on a specific cliffhanger or question, then say exactly: "Full story in caption."
+Spoken narration only. No stage directions, generic filler, fake facts, or repetitive phrases. Keep the story easy to follow on first listen and family-friendly.
 Never copy dialogue or prose from an existing work."""
 
 SPEC = """Return ONLY this JSON structure:
