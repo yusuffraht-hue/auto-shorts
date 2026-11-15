@@ -1,0 +1,20 @@
+{
+ "episodes": [
+  {
+   "title": "Black Clover Recap #1: Powerless to King?",
+   "kind": "recap",
+   "work": "Black Clover"
+  }
+ ],
+ "works": {
+  "Black Clover": 1
+ },
+ "log": {
+  "Black Clover": [
+   {
+    "n": 1,
+    "summary": "Follow a grimoireless orphan and his lightningswift rival as they clash with fate to rise to glory. Their first steps set the spark for a kingdom's destiny."
+   }
+  ]
+ }
+}
