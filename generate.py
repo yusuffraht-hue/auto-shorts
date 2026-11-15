@@ -77,20 +77,31 @@ def get_image(prompt, path, seed):
 
 
 async def tts_words(text, path):
-    """Save speech and return [(start, end, word)] using exact word timings when available."""
-    words = []
-    try:
-        com = edge_tts.Communicate(text, VOICE, rate=RATE, boundary="WordBoundary")
-        with open(path, "wb") as f:
-            async for ch in com.stream():
-                if ch["type"] == "audio":
-                    f.write(ch["data"])
-                elif ch["type"] == "WordBoundary":
-                    s = ch["offset"] / 1e7
-                    words.append((s, s + ch["duration"] / 1e7, ch["text"]))
-    except TypeError:
-        await edge_tts.Communicate(text, VOICE, rate=RATE).save(str(path))
-    return words
+    """Speech + [(start, end, word)] timings. Retries, backup voices, then Google TTS as a last resort."""
+    voices = [VOICE, "en-US-AndrewNeural", "en-US-GuyNeural", "en-US-AriaNeural"]
+    for attempt, voice in enumerate(voices * 2):
+        words = []
+        try:
+            try:
+                com = edge_tts.Communicate(text, voice, rate=RATE, boundary="WordBoundary")
+            except TypeError:
+                com = edge_tts.Communicate(text, voice, rate=RATE)
+            with open(path, "wb") as f:
+                async for ch in com.stream():
+                    if ch["type"] == "audio":
+                        f.write(ch["data"])
+                    elif ch["type"] == "WordBoundary":
+                        s = ch["offset"] / 1e7
+                        words.append((s, s + ch["duration"] / 1e7, ch["text"]))
+            if pathlib.Path(path).stat().st_size > 1000:
+                return words
+        except Exception as e:
+            print("tts retry:", voice, repr(e)[:120])
+        await asyncio.sleep(2 + attempt)
+    print("tts: falling back to Google TTS")
+    from gtts import gTTS
+    gTTS(text, lang="en").save(str(path))
+    return []
 
 
 def duration(path):
