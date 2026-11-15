@@ -1,15 +1,15 @@
-"""Daily pipeline: trend ideas -> skit script (GitHub Models) -> voice (edge-tts)
+"""Daily pipeline: trend ideas -> skit script (LLM) -> voice (edge-tts)
 -> images (Pollinations) -> vertical video (ffmpeg) -> YouTube upload."""
 import asyncio, json, os, pathlib, random, re, subprocess, sys, textwrap, time, urllib.parse
 import xml.etree.ElementTree as ET
 
 import edge_tts
 import requests
+from llm import call_llm
 
 OUT = pathlib.Path("out")
 OUT.mkdir(exist_ok=True)
 FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-MODEL = os.environ.get("MODEL", "openai/gpt-4o-mini")
 PRIVACY = os.environ.get("PRIVACY", "private")
 VOICE = os.environ.get("VOICE", "en-US-GuyNeural")
 
@@ -42,28 +42,6 @@ def extract_json(txt):
     txt = re.sub(r"^```(?:json)?|```$", "", txt.strip(), flags=re.M).strip()
     a, b = txt.find("{"), txt.rfind("}")
     return json.loads(txt[a:b + 1])
-
-
-def call_llm(prompt):
-    url = "https://models.github.ai/inference/chat/completions"
-    headers = {"Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
-               "Content-Type": "application/json",
-               "Accept": "application/vnd.github+json",
-               "X-GitHub-Api-Version": "2022-11-28"}
-    for model in dict.fromkeys([MODEL, "openai/gpt-4.1-mini", "openai/gpt-4o-mini",
-                                "meta/Llama-3.3-70B-Instruct"]):
-        for attempt in range(2):
-            try:
-                r = requests.post(url, headers=headers, timeout=120, json={
-                    "model": model, "temperature": 1.0, "max_tokens": 1500,
-                    "messages": [{"role": "user", "content": prompt}]})
-                print("models:", model, r.status_code, r.text[:200].replace("\n", " "))
-                if r.status_code == 200 and r.text.strip():
-                    return r.json()["choices"][0]["message"]["content"]
-            except Exception as e:
-                print("models error:", model, repr(e))
-            time.sleep(5)
-    raise RuntimeError("GitHub Models gave no usable reply (see log lines above)")
 
 
 def write_script():
