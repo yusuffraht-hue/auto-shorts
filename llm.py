@@ -9,7 +9,7 @@ GROQ = os.environ.get("GROQ_API_KEY", "").strip()
 SCENE_COUNT = 10
 SUFFIX = (
     "\nOutput raw JSON only. Exactly 10 scenes. Keep every image_prompt to 8-16 words. "
-    "Keep scene lines to 5-10 spoken words. No markdown fences."
+    "Keep scene lines to 5-7 spoken words. No markdown fences."
 )
 
 
