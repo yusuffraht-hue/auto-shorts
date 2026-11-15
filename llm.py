@@ -34,9 +34,11 @@ def _lenient(out):
         raise ValueError("could not recover scenes")
     t = re.search(r'"title"\s*:\s*"(.*?)"\s*,\s*"description"', out, re.S)
     d = re.search(r'"description"\s*:\s*"(.*?)"\s*,\s*"tags"', out, re.S)
+    h = re.search(r'"hero"\s*:\s*"(.*?)"\s*,\s*"scenes"', out, re.S)
     tags = re.findall(r'"([A-Za-z0-9 #_-]{2,30})"', (re.search(r'"tags"\s*:\s*\[(.*?)\]', out, re.S) or [None, ""])[1])
-    return {"title": t.group(1) if t else "In this world...",
+    return {"title": t.group(1) if t else "In this town...",
             "description": d.group(1) if d else "", "tags": tags,
+            "hero": h.group(1) if h else "",
             "scenes": [{"line": a.replace('\\"', '"'), "image_prompt": b} for a, b in scenes]}
 
 
@@ -51,7 +53,7 @@ def _clean_json(out):
     assert isinstance(obj.get("scenes"), list) and len(obj["scenes"]) >= 3
     for s in obj["scenes"]:
         assert s.get("line") and s.get("image_prompt")
-    obj.setdefault("title", "In this world...")
+    obj.setdefault("title", "In this town...")
     obj.setdefault("description", "")
     obj.setdefault("tags", [])
     return json.dumps(obj)
@@ -64,12 +66,15 @@ def call_llm(prompt):
                 nonce = f"\n(variation id: {random.randint(10**6, 10**9)})"
                 try:
                     r = requests.post(url, headers=headers, timeout=120, json={
-                        "model": model, "temperature": 1.0, "max_tokens": 1500,
+                        "model": model, "temperature": 1.0, "max_tokens": 4000,
                         "seed": random.randint(1, 10**8),
                         "messages": [{"role": "user", "content": prompt + SUFFIX + nonce}]})
-                    print("llm:", url.split("/")[2], model, r.status_code, repr(r.content[:60]))
+                    print("llm:", url.split("/")[2], model, r.status_code, repr(r.content[:200]))
                     if r.status_code != 200 or not r.content.strip():
-                        break
+                        if "github" in url:
+                            break
+                        time.sleep(4)
+                        continue
                     out = r.json()["choices"][0]["message"]["content"] or ""
                     try:
                         return _clean_json(out)
