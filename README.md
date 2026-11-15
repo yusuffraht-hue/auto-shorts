@@ -2,7 +2,7 @@
 
 A zero-cost starting point for a daily vertical story Short.
 
-Pipeline: story script (GitHub Models, with Pollinations text fallback) -> Edge TTS narration -> Pollinations images -> FFmpeg captions/render -> YouTube upload.
+Pipeline: story script (optional FreeLLMAPI -> Gemini/Groq -> GitHub Models -> Pollinations fallbacks) -> Edge TTS narration -> Pollinations images -> FFmpeg captions/render -> YouTube upload.
 
 ## What the current version improves
 
