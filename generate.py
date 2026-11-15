@@ -17,6 +17,19 @@ RATE = os.environ.get("RATE", "+0%")
 
 SERIES = os.environ.get("SERIES", "town")
 
+SHOT_COMPOSITIONS = (
+    "wide establishing shot showing the full environment",
+    "extreme close-up of the important object or clue",
+    "low-angle dramatic shot with strong foreground depth",
+    "overhead view showing the layout and surrounding details",
+    "side-profile medium shot with a different background",
+    "macro detail shot focused on a small visual clue",
+    "dynamic diagonal action composition with motion",
+    "distant figure framed by a large environment",
+    "over-the-shoulder view revealing what the subject sees",
+    "wide final reveal with clear foreground and background",
+)
+
 
 def write_script(hist):
     """Ask the LLM for the story; if it says it does not know the work, pick another."""
@@ -112,7 +125,7 @@ def chunks(words, dur):
 
 def make_clip(i, scene, hero, seed, style):
     img, aud, clip = OUT / f"s{i}.jpg", OUT / f"s{i}.mp3", OUT / f"s{i}.mp4"
-    prompt = f"{scene['image_prompt']}. Main character: {hero}. {style}"
+    prompt = f"{scene['image_prompt']}. Composition: {SHOT_COMPOSITIONS[i % len(SHOT_COMPOSITIONS)]}. Visual anchor: {hero}. {style}"
     get_image(prompt, img, seed)
     words = asyncio.run(tts_words(scene["line"], aud))
     dur = duration(aud) + 0.35
