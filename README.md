@@ -43,3 +43,17 @@ You can set \`VOICE\` and \`RATE\` as repository variables under Settings -> Sec
 - Repetitive, mass-produced AI videos may not qualify for monetization under YouTube's inauthentic-content rules. Add original creative direction, meaningful editing and your own contribution; don't rely on volume alone.
 - The code in this repository uploads to YouTube. Any separate Composio workflow for other platforms is managed separately.
 - Never put API keys, OAuth tokens or passwords in source code or commit them to GitHub. Store secrets in GitHub Actions Secrets.
+
+
+## Optional: FreeLLMAPI text provider
+
+The two video workflows can use a FreeLLMAPI gateway as their first story-generation provider. If it is not configured or its response is unusable, the existing Gemini, Groq, GitHub Models and Pollinations fallback chain remains available.
+
+1. Run FreeLLMAPI and add your upstream provider keys in its dashboard. Its OpenAI-compatible API uses `/v1/chat/completions` and a unified bearer key.
+2. Make the FreeLLMAPI server reachable from GitHub Actions over HTTPS. A local address such as `http://localhost:3001` or a Chromebook LAN address will **not** work from GitHub-hosted runners.
+3. In this repository, open **Settings → Secrets and variables → Actions**.
+4. Add the repository secret `FREELLMAPI_API_KEY` with your unified key.
+5. Add the repository variable `FREELLMAPI_BASE_URL` with the server origin, for example `https://your-private-gateway.example` (do not append `/v1`; the client accepts either form).
+6. Optionally add `FREELLMAPI_MODEL` as a variable. It defaults to `auto`, allowing FreeLLMAPI to select a model from its configured routing pool.
+
+Keep the gateway private where possible, use HTTPS, restrict who can reach it, and rotate the unified key if it is exposed. Do not put the key in workflow YAML, repository variables, source files, or chat. This integration does not deploy or host FreeLLMAPI for you; the gateway must be running and reachable before a workflow can use it.
