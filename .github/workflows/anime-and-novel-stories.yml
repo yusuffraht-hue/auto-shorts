@@ -60,6 +60,9 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          FREELLMAPI_BASE_URL: ${{ vars.FREELLMAPI_BASE_URL }}
+          FREELLMAPI_API_KEY: ${{ secrets.FREELLMAPI_API_KEY }}
+          FREELLMAPI_MODEL: ${{ vars.FREELLMAPI_MODEL || 'auto' }}
           PRIVACY: ${{ vars.PRIVACY || 'private' }}
           DRY_RUN: ${{ inputs.dry_run || false }}
           FORMAT: ${{ inputs.format || 'auto' }}
