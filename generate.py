@@ -25,30 +25,66 @@ def trend_ideas():
         return []
 
 
+THEMES = [
+    "a sorcery school where students hide cursed-energy techniques and exorcise curses (jujutsu-style school-of-sorcery vibe)",
+    "a secret mystery society where drinking potions advances you through ranked sequences and costs your sanity (occult-mystery light-novel vibe)",
+    "a magic kingdom where a powerless kid with an anti-magic grimoire tries to become the top mage (underdog shonen vibe)",
+    "a dungeon-and-hunter world with strict rank exams where one weak hunter secretly levels up alone (power-fantasy manhwa vibe)",
+    "an isekai village where a reincarnated villager has an overpowered skill nobody understands (light-novel vibe)",
+    "a cultivation sect with grumpy elders, breakthrough bottlenecks and secret manuals (cultivation manhwa vibe)",
+    "a tournament arc where the rules keep changing and everyone has a dramatic backstory (shonen tournament vibe)",
+    "a regression/villainess world where the heroine remembers the whole timeline and tries to dodge doom (regression manhwa vibe)",
+]
+BASE_TAGS = ["anime", "manhwa", "manga", "lightnovel", "shorts", "inthisworld"]
+
+
+def extract_json(txt):
+    txt = re.sub(r"^```(?:json)?|```$", "", txt.strip(), flags=re.M).strip()
+    a, b = txt.find("{"), txt.rfind("}")
+    return json.loads(txt[a:b + 1])
+
+
+def call_llm(prompt):
+    url = "https://models.github.ai/inference/chat/completions"
+    headers = {"Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
+               "Content-Type": "application/json",
+               "Accept": "application/vnd.github+json",
+               "X-GitHub-Api-Version": "2022-11-28"}
+    for model in dict.fromkeys([MODEL, "openai/gpt-4.1-mini", "openai/gpt-4o-mini",
+                                "meta/Llama-3.3-70B-Instruct"]):
+        for attempt in range(2):
+            try:
+                r = requests.post(url, headers=headers, timeout=120, json={
+                    "model": model, "temperature": 1.0, "max_tokens": 1500,
+                    "messages": [{"role": "user", "content": prompt}]})
+                print("models:", model, r.status_code, r.text[:200].replace("\n", " "))
+                if r.status_code == 200 and r.text.strip():
+                    return r.json()["choices"][0]["message"]["content"]
+            except Exception as e:
+                print("models error:", model, repr(e))
+            time.sleep(5)
+    raise RuntimeError("GitHub Models gave no usable reply (see log lines above)")
+
+
 def write_script():
     ideas = trend_ideas()
+    theme = THEMES[int(time.time() // 86400) % len(THEMES)]
     prompt = f"""Write an ORIGINAL 25-35 second vertical-video skit in the popular
-"In this town, ..." comedic format: a narrator describes absurd rules of a fictional
-blocky toy-town. Do not copy any existing video, creator, or catchphrase.
-Optional inspiration from today's trends (use loosely or ignore): {ideas}
-Keep it family-friendly. Return ONLY JSON:
+"In this world, ..." comedic format: a narrator describes absurd rules of a fictional
+blocky toy-village. Theme: {theme}.
+Rules: invent your own characters and world. NEVER use real character names, catchphrases,
+or plot spoilers from any anime, manga, manhwa or light novel. Family-friendly.
+Optional trend inspiration (use loosely or ignore): {ideas}
+Return ONLY JSON:
 {{"title": "...", "description": "...", "tags": ["..."],
   "scenes": [{{"line": "narration, max 18 words",
-              "image_prompt": "blocky low-poly toy town scene, bright colors, ..."}}]}}
-Exactly 5 scenes. Image prompts must NOT mention Roblox or any brand."""
-    r = requests.post(
-        "https://models.github.ai/inference/chat/completions",
-        headers={"Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
-                 "Content-Type": "application/json"},
-        json={"model": MODEL, "temperature": 1.0,
-              "messages": [{"role": "user", "content": prompt}]},
-        timeout=120,
-    )
-    r.raise_for_status()
-    txt = r.json()["choices"][0]["message"]["content"]
-    txt = re.sub(r"^```(?:json)?|```$", "", txt.strip(), flags=re.M).strip()
-    data = json.loads(txt)
+              "image_prompt": "blocky low-poly toy-village scene with simple blocky characters, bright colors, ..."}}]}}
+Exactly 5 scenes. Image prompts must NOT mention any brand, game or series."""
+    data = extract_json(call_llm(prompt))
     assert len(data["scenes"]) >= 3
+    data["tags"] = list(dict.fromkeys(BASE_TAGS + data.get("tags", [])))[:15]
+    data["description"] += ("\n\nOriginal skit inspired by common anime, manga, manhwa and "
+                            "light-novel tropes. Not affiliated with any studio or publisher.")
     return data
 
 
