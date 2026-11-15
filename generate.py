@@ -121,12 +121,59 @@ Return ONLY valid JSON with this exact shape:
 "hero":"fixed protagonist appearance",
 "scenes":[{{"line":"spoken narration","image_prompt":"visual description"}}]}}
 There must be exactly 7 scene objects."""
-    data = validate_story(json.loads(call_llm(prompt)))
+    try:
+        data = validate_story(json.loads(call_llm(prompt)))
+    except Exception as error:
+        # Keep the daily pipeline alive if a free LLM returns truncated or invalid JSON.
+        print("LLM story rejected; using validated fallback story:", repr(error))
+        data = fallback_story()
     data["tags"] = list(dict.fromkeys(BASE_TAGS + data.get("tags", [])))[:15]
     data["description"] += (
         "\n\nOriginal fictional story with AI-assisted visuals and narration."
     )
     return data
+
+
+def fallback_story():
+    """A complete original story used only when free text APIs fail validation."""
+    hero = "Milo, a small blocky boy with a teal jacket, orange scarf, dark curly hair and round glasses"
+    scenes = [
+        {
+            "line": "In this world, every child receives one key that opens a single locked door.",
+            "image_prompt": "Milo receives a glowing brass key in a crowded school courtyard, wide cinematic shot, curious expression"
+        },
+        {
+            "line": "Most keys reveal treasure, secret rooms, or the future people dream about.",
+            "image_prompt": "Milo watches other children open sparkling doors showing treasure and bright futures, over-the-shoulder view"
+        },
+        {
+            "line": "But Milo's key opens a tiny door hidden beneath his classroom floor.",
+            "image_prompt": "Milo kneels beside a tiny wooden door beneath classroom floorboards, close-up, nervous curiosity"
+        },
+        {
+            "line": "Behind it, hundreds of keys hang beside rows of sleeping shadows.",
+            "image_prompt": "Milo enters a mysterious underground chamber filled with hanging keys and still shadow silhouettes, dramatic wide shot"
+        },
+        {
+            "line": "A dusty note explains that each key belongs to someone who disappears tomorrow.",
+            "image_prompt": "Milo holds an old handwritten note beneath a single beam of light, worried close-up"
+        },
+        {
+            "line": "Then he finds one key marked with his own name, and it is warm.",
+            "image_prompt": "Milo stares at a glowing key engraved with his name, trembling hand, intense close-up"
+        },
+        {
+            "line": "He turns around; his shadow is holding the tiny door open from the other side.",
+            "image_prompt": "Milo faces his own living shadow holding the doorway open behind him, eerie final reveal, dramatic low angle"
+        }
+    ]
+    return {
+        "title": "The Key That Already Knew Milo",
+        "description": "One strange key leads a schoolboy to a room that should not exist.",
+        "tags": ["fantasy", "mystery", "originalstory"],
+        "hero": hero,
+        "scenes": scenes
+    }
 
 
 def get_image(prompt, path, seed):
