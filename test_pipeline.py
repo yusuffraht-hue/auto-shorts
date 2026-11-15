@@ -43,10 +43,16 @@ class LLMValidationTests(unittest.TestCase):
 class SeriesTests(unittest.TestCase):
     def test_video_prompt_uses_shorter_caption_story(self):
         self.assertIn("140-180 words", series.VIDEO_RULES)
+        self.assertIn("5-7 natural spoken words", series.VIDEO_RULES)
+        self.assertIn("Proofread the story", series.VIDEO_RULES)
 
     def test_town_prompt_requests_ten_scenes(self):
         meta = series.build("town", {"episodes": [], "works": {}, "log": {}})
         self.assertIn("exactly 10 scenes", meta["prompt"])
+
+    def test_visual_shot_list_has_ten_distinct_compositions(self):
+        self.assertEqual(len(generate.SHOT_COMPOSITIONS), 10)
+        self.assertEqual(len(set(generate.SHOT_COMPOSITIONS)), 10)
 
     def test_caption_chunks_are_readable_and_timed(self):
         words = [(i * 0.4, (i + 1) * 0.4, w)
