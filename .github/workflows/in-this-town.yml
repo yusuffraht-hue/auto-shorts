@@ -3,7 +3,13 @@ name: in-this-town
 on:
   schedule:
     - cron: "0 15 * * *"   # daily 15:00 UTC
-  workflow_dispatch:        # run by hand from the Actions tab
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Generate a test video without uploading or changing episode history"
+        type: boolean
+        required: false
+        default: true
 
 permissions:
   contents: write           # lets the job save episode history
@@ -37,6 +43,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           PRIVACY: ${{ vars.PRIVACY || 'private' }}
+          DRY_RUN: ${{ inputs.dry_run || false }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
