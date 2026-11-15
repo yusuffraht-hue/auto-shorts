@@ -1,5 +1,6 @@
-"""LLM helper. Returns a clean JSON string.
-Order: Gemini (free key) -> Groq (free key) -> GitHub Models -> Pollinations (free, weak)."""
+"""LLM helper. Returns validated JSON.
+Provider order: Gemini -> Groq -> GitHub Models -> Pollinations.
+"""
 import json, os, random, re, time, requests
 
 GH = os.environ.get("GITHUB_TOKEN", "")
@@ -26,13 +27,15 @@ for _name in ("GEMINI_API_KEY", "GROQ_API_KEY", "OPENAI_API_KEY"):
         GEMINI = _v
     elif _kind == "groq" and not GROQ:
         GROQ = _v
-MIN_SCENES = 6
-SUFFIX = ("\nUse plain ASCII only: straight quotes, no curly quotes, no em-dashes, "
-          "no double quotes inside text values. Output raw JSON only.")
+SCENE_COUNT = 10
+SUFFIX = (
+    "\nOutput raw JSON only. Exactly 10 scenes. Keep every image_prompt to 8-16 words. "
+    "Keep scene lines to 5-7 spoken words. No markdown fences."
+)
 
 
 def _ascii(s):
-    try:  # undo UTF-8 text that was decoded as latin-1/cp1252
+    try:
         s = s.encode("cp1252").decode("utf-8")
     except Exception:
         pass
@@ -43,11 +46,10 @@ def _ascii(s):
 
 
 def _lenient(out):
-    """Regex fallback for almost-JSON with stray quotes."""
     scenes = re.findall(
         r'"line"\s*:\s*"(.*?)"\s*,\s*"image_prompt"\s*:\s*"(.*?)"\s*\}', out, re.S)
-    if len(scenes) < MIN_SCENES:
-        raise ValueError("could not recover scenes")
+    if len(scenes) != SCENE_COUNT:
+        raise ValueError(f"expected {SCENE_COUNT} scenes, recovered {len(scenes)}")
     t = re.search(r'"title"\s*:\s*"(.*?)"\s*,\s*"description"', out, re.S)
     d = re.search(r'"description"\s*:\s*"(.*?)"\s*,\s*"tags"', out, re.S)
     h = re.search(r'"hero"\s*:\s*"(.*?)"\s*,\s*"(?:full_story|scenes)"', out, re.S)
@@ -58,12 +60,14 @@ def _lenient(out):
             "description": d.group(1) if d else "", "tags": tags,
             "hero": h.group(1) if h else "",
             "full_story": fs.group(1).replace("\\n", "\n") if fs else "",
-            "scenes": [{"line": a.replace('\\"', '"'), "image_prompt": b} for a, b in scenes]}
+            "scenes": [{"line": a.replace('\\\"', '"'), "image_prompt": b} for a, b in scenes]}
 
 
 def _clean_json(out):
-    out = _ascii(out)
+    out = _ascii(out or "")
     a, b = out.find("{"), out.rfind("}")
+    if a < 0 or b <= a:
+        raise ValueError("provider returned no JSON object")
     body = out[a:b + 1]
     try:
         obj = json.loads(body, strict=False)
@@ -71,20 +75,29 @@ def _clean_json(out):
         if '"skip"' in body and '"scenes"' not in body:
             return json.dumps({"skip": True})
         obj = _lenient(body)
+    if not isinstance(obj, dict):
+        raise ValueError("response must be a JSON object")
     if obj.get("skip"):
         return json.dumps({"skip": True})
-    assert isinstance(obj.get("scenes"), list) and len(obj["scenes"]) >= MIN_SCENES, "too few scenes"
-    for s in obj["scenes"]:
-        assert s.get("line") and s.get("image_prompt")
+    scenes = obj.get("scenes")
+    if not isinstance(scenes, list) or len(scenes) != SCENE_COUNT:
+        raise ValueError(f"expected exactly {SCENE_COUNT} scenes")
+    for i, scene in enumerate(scenes, 1):
+        if not isinstance(scene, dict) or not str(scene.get("line", "")).strip() or not str(scene.get("image_prompt", "")).strip():
+            raise ValueError(f"scene {i} is missing narration or image prompt")
     obj.setdefault("title", "Untitled")
     obj.setdefault("description", "")
     obj.setdefault("tags", [])
+    obj.setdefault("hero", "")
+    obj.setdefault("full_story", "")
+    if not isinstance(obj["tags"], list):
+        obj["tags"] = []
     return json.dumps(obj)
 
 
 def _gemini(prompt):
     for model in ("gemini-2.5-flash", "gemini-2.0-flash"):
-        cfg = {"temperature": 1.0, "maxOutputTokens": 8000,
+        cfg = {"temperature": 0.9, "maxOutputTokens": 10000,
                "responseMimeType": "application/json"}
         if "2.5" in model:
             cfg["thinkingConfig"] = {"thinkingBudget": 0}
@@ -93,70 +106,117 @@ def _gemini(prompt):
             headers={"x-goog-api-key": GEMINI, "Content-Type": "application/json"},
             json={"contents": [{"parts": [{"text": prompt}]}], "generationConfig": cfg},
             timeout=120)
-        print("llm: gemini", model, r.status_code, repr(r.text[:120]))
+        print("llm: gemini", model, r.status_code, repr(r.text[:160]))
         if r.status_code == 200:
-            yield r.json()["candidates"][0]["content"]["parts"][0]["text"]
+            try:
+                yield r.json()["candidates"][0]["content"]["parts"][0]["text"]
+            except (KeyError, IndexError, ValueError):
+                print("llm: gemini returned no candidate text")
         elif r.status_code == 429:
             time.sleep(20)
+
+
+_GROQ_MODEL = None
+_GROQ_PREF = ("llama-3.3-70b-versatile", "openai/gpt-oss-120b", "qwen/qwen3-32b",
+              "openai/gpt-oss-20b", "llama-3.1-8b-instant")
+
+
+def _groq_model():
+    """Pick a chat model this Groq key can actually use (model names change over time)."""
+    global _GROQ_MODEL
+    if _GROQ_MODEL:
+        return _GROQ_MODEL
+    try:
+        r = requests.get("https://api.groq.com/openai/v1/models",
+                         headers={"Authorization": f"Bearer {GROQ}"}, timeout=30)
+        ids = [m["id"] for m in r.json().get("data", [])]
+        print("llm: groq models:", ids)
+        for p in _GROQ_PREF:
+            if p in ids:
+                _GROQ_MODEL = p
+                return p
+        chat = [i for i in ids if not any(x in i.lower() for x in
+                ("whisper", "guard", "tts", "prompt", "orpheus", "distil"))]
+        if chat:
+            _GROQ_MODEL = chat[0]
+            return _GROQ_MODEL
+    except Exception as e:
+        print("llm: groq model list failed:", repr(e)[:150])
+    return "llama-3.3-70b-versatile"
 
 
 def _groq(prompt):
-    for model in ("llama-3.3-70b-versatile",):
-        r = requests.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={"Authorization": f"Bearer {GROQ}", "Content-Type": "application/json"},
-            json={"model": model, "temperature": 1.0, "max_tokens": 4000,
-                  "response_format": {"type": "json_object"},
-                  "messages": [{"role": "user", "content": prompt}]}, timeout=120)
-        print("llm: groq", model, r.status_code, repr(r.text[:120]))
-        if r.status_code == 200:
+    r = requests.post(
+        "https://api.groq.com/openai/v1/chat/completions",
+        headers={"Authorization": f"Bearer {GROQ}", "Content-Type": "application/json"},
+        json={"model": _groq_model(), "temperature": 0.9, "max_tokens": 10000,
+              "response_format": {"type": "json_object"},
+              "messages": [{"role": "user", "content": prompt}]}, timeout=120)
+    print("llm: groq", r.status_code, repr(r.text[:160]))
+    if r.status_code == 200:
+        try:
             yield r.json()["choices"][0]["message"]["content"]
-        elif r.status_code == 429:
-            time.sleep(20)
+        except (KeyError, IndexError, ValueError):
+            print("llm: groq returned no message content")
+    elif r.status_code == 429:
+        time.sleep(20)
 
 
 def _github(prompt):
     r = requests.post(
         "https://models.github.ai/inference/chat/completions",
-        headers={"Authorization": f"Bearer {GH}", "Accept-Encoding": "identity",
+        headers={"Authorization": f"Bearer {GH}", "Accept": "application/json",
                  "Content-Type": "application/json"},
-        json={"model": "openai/gpt-4o-mini", "max_tokens": 4000,
+        json={"model": "openai/gpt-4o-mini", "max_tokens": 10000,
               "messages": [{"role": "user", "content": prompt}]}, timeout=120)
-    print("llm: github", r.status_code, repr(r.content[:60]))
-    if r.status_code == 200 and r.content.strip():
-        yield r.json()["choices"][0]["message"]["content"]
+    print("llm: github", r.status_code, repr(r.text[:160]))
+    if r.status_code == 200:
+        try:
+            yield r.json()["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, ValueError):
+            print("llm: github returned non-chat response; falling back")
 
 
 def _pollinations(prompt):
-    for _ in range(8):
+    for attempt in range(5):
         r = requests.post(
             "https://text.pollinations.ai/openai",
-            json={"model": "openai-fast", "max_tokens": 8000, "seed": random.randint(1, 10**8),
+            json={"model": "openai-fast", "max_tokens": 12000, "seed": random.randint(1, 10**8),
                   "messages": [{"role": "user", "content": prompt}]}, timeout=180)
-        print("llm: pollinations", r.status_code, repr(r.text[:120]))
+        print("llm: pollinations", r.status_code, repr(r.text[:160]))
         if r.status_code == 200:
-            yield r.json()["choices"][0]["message"]["content"]
-        else:
+            try:
+                yield r.json()["choices"][0]["message"]["content"]
+            except (KeyError, IndexError, ValueError):
+                print("llm: pollinations returned no message content")
+        elif r.status_code == 429:
             m = re.search(r"Retry after (\d+)s", r.text)
-            time.sleep(int(m.group(1)) + 3 if m else 20)
+            time.sleep(int(m.group(1)) + 3 if m else 30)
+        elif r.status_code == 400 and "output token limit" in r.text.lower():
+            # Prompt is already deliberately compact; don't hammer the same rejected request.
+            break
+        else:
+            time.sleep(8)
 
 
 def call_llm(prompt):
     sources = []
     if GEMINI:
-        sources.append(("gemini", _gemini, 3))
+        sources.append(("gemini", _gemini, 2))
     if GROQ:
-        sources.append(("groq", _groq, 3))
-    sources += [("github", _github, 1), ("pollinations", _pollinations, 1)]
+        sources.append(("groq", _groq, 2))
+    sources += [("github", _github, 2), ("pollinations", _pollinations, 1)]
     for name, fn, tries in sources:
         for _ in range(tries):
             try:
                 for out in fn(prompt + SUFFIX + f"\n(variation id: {random.randint(10**6, 10**9)})"):
                     try:
-                        return _clean_json(out or "")
+                        clean = _clean_json(out)
+                        print("llm: accepted", name)
+                        return clean
                     except Exception as e:
-                        print(f"llm {name} bad output:", repr(e), repr((out or "")[:200]))
+                        print(f"llm {name} invalid output:", repr(e), repr((out or "")[:180]))
             except Exception as e:
                 print(f"llm {name} error:", repr(e)[:200])
-            time.sleep(3)
-    raise RuntimeError("No LLM source gave a usable script (see 'llm' lines above)")
+            time.sleep(2)
+    raise RuntimeError("No LLM provider returned valid JSON with exactly 10 scenes")
