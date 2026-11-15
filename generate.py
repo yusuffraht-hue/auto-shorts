@@ -1,12 +1,12 @@
-"""Daily pipeline: story script (LLM) -> voice with word timings (edge-tts)
--> 3D blocky-style images (Pollinations flux) -> vertical video with big word-by-word
-captions (ffmpeg) -> YouTube upload."""
+"""Pipeline for one series (set SERIES=town or anime): story (LLM) -> voice with word timings
+(edge-tts) -> images (Pollinations flux) -> vertical video with big word-by-word captions
+(ffmpeg) -> YouTube upload -> episode history."""
 import asyncio, json, os, pathlib, random, re, subprocess, textwrap, time, urllib.parse
-import xml.etree.ElementTree as ET
 
 import edge_tts
 import requests
 from llm import call_llm
+import series
 
 OUT = pathlib.Path("out")
 OUT.mkdir(exist_ok=True)
@@ -15,96 +15,24 @@ PRIVACY = os.environ.get("PRIVACY", "private")
 VOICE = os.environ.get("VOICE", "en-US-AndrewMultilingualNeural")
 RATE = os.environ.get("RATE", "+8%")
 
-STYLE = ("stylized 3D render, blocky toy-town world, glossy plastic look, bright saturated "
-         "colors, soft cinematic lighting, shallow depth of field, vertical composition, "
-         "highly detailed, clean, no text, no watermark")
-THEMES = [
-    "a sorcery school where students hide cursed-energy techniques and exorcise curses",
-    "a secret mystery society where drinking potions advances you through ranked sequences and costs your sanity",
-    "a magic kingdom where a powerless kid with an anti-magic grimoire tries to become the top mage",
-    "a dungeon-and-hunter world with strict rank exams where one weak hunter secretly levels up alone",
-    "an isekai village where a reincarnated villager has an overpowered skill nobody understands",
-    "a cultivation sect with grumpy elders, breakthrough bottlenecks and secret manuals",
-    "a tournament arc where the rules keep changing and everyone has a dramatic backstory",
-    "a regression world where one person remembers the whole timeline and tries to dodge doom",
-    "a town where money, time or luck works by one bizarre rule that everyone must obey",
-    "a town with a time capsule that predicts what the townspeople will do next",
-]
-BASE_TAGS = ["anime", "manhwa", "manga", "lightnovel", "shorts", "storytime", "inthistown"]
-CLASSICS = [
-    "Journey to the West (the Monkey King's rebellion against heaven)",
-    "Romance of the Three Kingdoms (a famous strategist outwitting a larger army)",
-    "Water Margin (outlaws of the marsh banding together)",
-    "Investiture of the Gods (gods and immortals fighting a dynasty war)",
-    "The Tale of the Bamboo Cutter (the girl found inside glowing bamboo)",
-    "Urashima Taro (the fisherman who visits the sea palace)",
-    "Momotaro (the peach boy and his animal allies)",
-    "The Odyssey (a hero tricking monsters on the way home)",
-    "One Thousand and One Nights (a storyteller who survives by cliffhangers)",
-    "Beowulf (the hall haunted by a monster)",
-    "Dracula (a haunted castle journey)",
-    "Frankenstein (a creation that turns on its maker)",
-    "The Count of Monte Cristo (prison escape and elaborate revenge)",
-    "Norse myths (the gods tricking a giant builder)",
-    "Sherlock Holmes (a locked-room mystery solved by tiny clues)",
-    "Greek myths (a mortal who challenges the gods)",
-]
+SERIES = os.environ.get("SERIES", "town")
 
 
-def trend_ideas():
-    try:
-        r = requests.get("https://trends.google.com/trending/rss?geo=US", timeout=20)
-        return [i.findtext("title") for i in ET.fromstring(r.text).iter("item")][:6]
-    except Exception as e:
-        print("trend fetch skipped:", e)
-        return []
-
-
-def write_script():
-    classic_day = int(time.time() // 86400) % 2 == 0
-    if classic_day:
-        brief = (f"Retell ONE gripping episode of this public-domain classic as a story-time short: "
-                 f"{random.choice(CLASSICS)}. Use its traditional character names. Make it feel like a "
-                 "binge-worthy anime episode recap: hook, rising stakes, a twist, a cliffhanger ending.")
-        kind = "classic"
-    else:
-        brief = (f"Write an ORIGINAL story about ONE invented protagonist (give them a first name) in a "
-                 f"blocky toy-town, in the popular 'In this town, ...' format. Genre flavor translated into "
-                 f"plain story language: {random.choice(THEMES)}. NEVER use real character names or plot "
-                 "points from any anime, manga, manhwa, light novel or game.")
-        kind = "original"
-    prompt = f"""You are a top YouTube Shorts story writer. {brief}
-Write TWO versions of the SAME story: (a) "full_story", a complete, well-written telling of the whole story
-in 250-400 words, 3-5 short paragraphs, easy to read in a caption; (b) "scenes", a SUMMARIZED version of it
-for a 45-second video, 10 scenes. Scene 10 must end by telling viewers the full story is in the caption.
-Video structure:
-1 HOOK: the first line must stop the scroll (an impossible rule, shocking claim or question).
-2-4 SETUP: introduce the hero and what they want, concrete and visual.
-5-8 ESCALATE: every scene adds a NEW problem, discovery or reversal; cause leads to effect.
-9 TWIST: a reveal that recontextualizes what we saw.
-10 END: a punchy last line that makes people comment or watch again.
-Style: spoken narration only, short punchy sentences (max 13 words), vivid specific details,
-sensory words, emotional stakes, no filler, no stage directions, family-friendly.
-Trend inspiration (optional, ignore if it does not fit): {trend_ideas()}
-Return ONLY JSON:
-{{"title": "curiosity-driven title under 60 chars", "description": "2 sentences", "tags": ["..."],
-  "hero": "visual description of the main character in 15 words (blocky toy character, clothes, hair)",
-  "full_story": "the complete 250-400 word story, paragraphs separated by two newlines",
-  "scenes": [{{"line": "narration", "image_prompt": "what we SEE: setting, action, camera angle, lighting, mood"}}]}}
-Exactly 10 scenes."""
-    data = json.loads(call_llm(prompt))
-    data["tags"] = list(dict.fromkeys(BASE_TAGS + data.get("tags", [])))[:15]
-    story = (data.get("full_story") or " ".join(sc["line"] for sc in data["scenes"])).strip()
-    story = story.replace("<", "").replace(">", "")
-    if kind == "classic":
-        note = "A retelling of a public-domain classic in a blocky toy-world style."
-    else:
-        note = ("Original story inspired by common anime, manga, manhwa and light-novel tropes. "
-                "Not affiliated with any studio or publisher.")
-    data["full_story"] = story
-    data["description"] = (data.get("description", "").strip() + "\n\nFULL STORY:\n" + story
-                           + "\n\n" + note)[:4700]
-    return data
+def write_script(hist):
+    """Ask the LLM for the story; if it says it does not know the work, pick another."""
+    avoid = set()
+    for _ in range(5):
+        meta = series.build(SERIES, hist, avoid)
+        data = json.loads(call_llm(meta["prompt"]))
+        if data.get("skip"):
+            print("LLM skipped", meta.get("work"), "- trying another")
+            avoid.add(meta.get("work"))
+            continue
+        data = series.finish(meta, data, hist)
+        data["style"], data["voice"] = meta["style"], meta["voice"]
+        data["hero"] = data.get("hero") or meta["hero_default"]
+        return data
+    raise RuntimeError("could not get a usable story")
 
 
 def get_image(prompt, path, seed):
@@ -177,9 +105,9 @@ def chunks(words, dur):
     return out
 
 
-def make_clip(i, scene, hero, seed):
+def make_clip(i, scene, hero, seed, style):
     img, aud, clip = OUT / f"s{i}.jpg", OUT / f"s{i}.mp3", OUT / f"s{i}.mp4"
-    prompt = f"{scene['image_prompt']}. Main character: {hero}. {STYLE}"
+    prompt = f"{scene['image_prompt']}. Main character: {hero}. {style}"
     get_image(prompt, img, seed)
     words = asyncio.run(tts_words(scene["line"], aud))
     dur = duration(aud) + 0.35
@@ -209,7 +137,7 @@ def make_clip(i, scene, hero, seed):
 def build_video(data):
     hero = data.get("hero") or "a friendly blocky toy character with a bright jacket"
     seed = random.randint(1, 10**6)  # one seed for the whole video keeps the look consistent
-    clips = [make_clip(i, s, hero, seed) for i, s in enumerate(data["scenes"])]
+    clips = [make_clip(i, s, hero, seed, data["style"]) for i, s in enumerate(data["scenes"])]
     lst = OUT / "list.txt"
     lst.write_text("".join(f"file '{c.name}'\n" for c in clips))
     final = OUT / "final.mp4"
@@ -242,8 +170,11 @@ def upload_youtube(path, data):
 
 
 if __name__ == "__main__":
-    data = write_script()
-    print(json.dumps(data, indent=2))
+    hist = series.load(SERIES)
+    data = write_script(hist)
+    if not os.environ.get("VOICE"):
+        VOICE = data["voice"]
+    print(json.dumps({k: v for k, v in data.items() if k != "full_story"}, indent=2))
     (OUT / "story.txt").write_text(data["title"] + "\n\n" + data["full_story"] + "\n\n"
                                    + " ".join("#" + t.replace(" ", "") for t in data["tags"]))
     video = build_video(data)
@@ -251,3 +182,4 @@ if __name__ == "__main__":
         upload_youtube(video, data)
     else:
         print("YouTube secrets not set; video saved at", video)
+    series.save(SERIES, hist)

@@ -29,12 +29,14 @@ def _lenient(out):
         raise ValueError("could not recover scenes")
     t = re.search(r'"title"\s*:\s*"(.*?)"\s*,\s*"description"', out, re.S)
     d = re.search(r'"description"\s*:\s*"(.*?)"\s*,\s*"tags"', out, re.S)
-    h = re.search(r'"hero"\s*:\s*"(.*?)"\s*,\s*"scenes"', out, re.S)
+    h = re.search(r'"hero"\s*:\s*"(.*?)"\s*,\s*"(?:full_story|scenes)"', out, re.S)
+    fs = re.search(r'"full_story"\s*:\s*"(.*?)"\s*,\s*"scenes"', out, re.S)
     tags = re.findall(r'"([A-Za-z0-9 #_-]{2,30})"',
                       (re.search(r'"tags"\s*:\s*\[(.*?)\]', out, re.S) or [None, ""])[1])
-    return {"title": t.group(1) if t else "In this town...",
+    return {"title": t.group(1) if t else "Untitled",
             "description": d.group(1) if d else "", "tags": tags,
             "hero": h.group(1) if h else "",
+            "full_story": fs.group(1).replace("\\n", "\n") if fs else "",
             "scenes": [{"line": a.replace('\\"', '"'), "image_prompt": b} for a, b in scenes]}
 
 
@@ -45,11 +47,15 @@ def _clean_json(out):
     try:
         obj = json.loads(body, strict=False)
     except Exception:
+        if '"skip"' in body and '"scenes"' not in body:
+            return json.dumps({"skip": True})
         obj = _lenient(body)
+    if obj.get("skip"):
+        return json.dumps({"skip": True})
     assert isinstance(obj.get("scenes"), list) and len(obj["scenes"]) >= MIN_SCENES, "too few scenes"
     for s in obj["scenes"]:
         assert s.get("line") and s.get("image_prompt")
-    obj.setdefault("title", "In this town...")
+    obj.setdefault("title", "Untitled")
     obj.setdefault("description", "")
     obj.setdefault("tags", [])
     return json.dumps(obj)
