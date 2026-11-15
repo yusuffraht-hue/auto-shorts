@@ -50,8 +50,13 @@ def get_image(prompt, path, seed):
                 path.write_bytes(r.content)
                 time.sleep(3)
                 return
-            m = re.search(r"Retry after (\d+)s", r.text)
-            wait = int(m.group(1)) + 3 if m else 20
+            m = re.search(r"Retry after (\\d+)s", r.text)
+            if m:
+                wait = int(m.group(1)) + 3
+            elif r.status_code == 402 or "FREE_LIMIT" in r.text:
+                wait = 48
+            else:
+                wait = 20
         except requests.RequestException as e:
             print("image retry:", e)
         time.sleep(wait)
