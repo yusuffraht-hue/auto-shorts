@@ -183,8 +183,12 @@ if __name__ == "__main__":
     (OUT / "story.txt").write_text(data["title"] + "\n\n" + data["full_story"] + "\n\n"
                                    + " ".join("#" + t.replace(" ", "") for t in data["tags"]))
     video = build_video(data)
-    if all(os.environ.get(k) for k in ("YT_CLIENT_ID", "YT_CLIENT_SECRET", "YT_REFRESH_TOKEN")):
+    dry_run = os.environ.get("DRY_RUN", "false").lower() == "true"
+    if dry_run:
+        print("DRY RUN: video generated but not uploaded; history was not changed.")
+    elif all(os.environ.get(k) for k in ("YT_CLIENT_ID", "YT_CLIENT_SECRET", "YT_REFRESH_TOKEN")):
         upload_youtube(video, data)
+        series.save(SERIES, hist)
     else:
         print("YouTube secrets not set; video saved at", video)
-    series.save(SERIES, hist)
+        series.save(SERIES, hist)
