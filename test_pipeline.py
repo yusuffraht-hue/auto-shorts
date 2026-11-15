@@ -44,7 +44,7 @@ class SeriesTests(unittest.TestCase):
         meta = series.build("town", {"episodes": [], "works": {}, "log": {}})
         self.assertIn("exactly 10 scenes", meta["prompt"])
 
-    def test_auto_anime_selection_uses_only_verified_works(self):
+    def test_caption_chunks_are_readable_and_timed(self):\n        words = [(i * 0.4, (i + 1) * 0.4, w) for i, w in enumerate(["The", "door", "opened", "by", "itself", "again"]) ]\n        caps = generate.chunks(words, 2.5)\n        self.assertEqual([c[2] for c in caps], ["The door opened", "by itself again"])\n        self.assertAlmostEqual(caps[0][1], caps[1][0])\n\n    def test_auto_anime_selection_uses_only_verified_works(self):
         hist = {"episodes": [], "works": {}, "log": {}}
         with patch.dict(os.environ, {"WORK": "auto", "FORMAT": "recap"}):
             meta = series.build("anime", hist)
