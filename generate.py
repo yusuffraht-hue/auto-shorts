@@ -13,7 +13,7 @@ OUT.mkdir(exist_ok=True)
 FONT = os.environ.get("FONT", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
 PRIVACY = os.environ.get("PRIVACY", "private")
 VOICE = os.environ.get("VOICE", "en-US-AndrewMultilingualNeural")
-RATE = os.environ.get("RATE", "+8%")
+RATE = os.environ.get("RATE", "+0%")
 
 SERIES = os.environ.get("SERIES", "town")
 
@@ -93,10 +93,10 @@ def even_words(text, dur):
 
 
 def chunks(words, dur):
-    """Group words into 1-2 word caption chunks with start/end times."""
+    """Group words into readable 2-3 word caption chunks with start/end times."""
     groups, cur = [], []
     for w in words:
-        if cur and (len(cur) >= 2 or len(" ".join(x[2] for x in cur + [w])) > 14):
+        if cur and (len(cur) >= 3 or len(" ".join(x[2] for x in cur + [w])) > 24):
             groups.append(cur)
             cur = []
         cur.append(w)
@@ -127,12 +127,12 @@ def make_clip(i, scene, hero, seed, style):
     for k, (s, e, txt) in enumerate(caps):
         cf = OUT / f"c{i}_{k}.txt"
         cf.write_text(txt.upper())
-        color = "yellow" if k % 2 else "white"
-        vf += (f",drawtext=fontfile={FONT}:textfile={cf}:fontcolor={color}:fontsize=92:"
-               f"borderw=9:bordercolor=black:x=(w-text_w)/2:y=h*0.60:"
+        color = "white"
+        vf += (f",drawtext=fontfile={FONT}:textfile={cf}:fontcolor={color}:fontsize=76:box=1:boxcolor=black@0.32:boxborderw=18:shadowcolor=black:shadowx=2:shadowy=2:"
+               f"borderw=9:bordercolor=black:x=(w-text_w)/2:y=h*0.68:"
                f"enable='between(t,{s:.2f},{e:.2f})'")
     subprocess.run(
-        ["ffmpeg", "-y", "-i", str(img), "-i", str(aud), "-vf", vf, "-af", "apad",
+        ["ffmpeg", "-y", "-i", str(img), "-i", str(aud), "-vf", vf, "-af", "loudnorm=I=-16:TP=-1.5:LRA=11,apad",
          "-t", f"{dur:.2f}", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac",
          "-ar", "44100", str(clip)],
         check=True, capture_output=True)
