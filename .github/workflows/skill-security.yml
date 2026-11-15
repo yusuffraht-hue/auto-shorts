@@ -1,0 +1,44 @@
+name: skill-security
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan-agent-skills:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Find committed skill bundles
+        id: skills
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' manifests < <(find . -type f \( -name 'SKILL.md' -o -name 'skill.md' \) -not -path './.git/*' -print0)
+          if [ "${#manifests[@]}" -eq 0 ]; then
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "No SKILL.md files found; no agent skills to scan."
+            exit 0
+          fi
+          printf '%s\n' "${manifests[@]}"
+          printf '%s\n' "${manifests[@]}" | sed 's#^./##' | while IFS= read -r file; do dirname "$file"; done | sort -u > /tmp/skill-dirs.txt
+          echo "found=true" >> "$GITHUB_OUTPUT"
+      - name: Install NVIDIA SkillSpector
+        if: steps.skills.outputs.found == 'true'
+        run: python -m pip install "git+https://github.com/NVIDIA/skillspector.git"
+      - name: Scan skills without an LLM/API key
+        if: steps.skills.outputs.found == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r dir; do
+            echo "::group::SkillSpector: $dir"
+            skillspector scan "$dir" --no-llm --fail-on-findings
+            echo "::endgroup::"
+          done < /tmp/skill-dirs.txt

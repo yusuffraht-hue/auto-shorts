@@ -40,6 +40,21 @@ class LLMValidationTests(unittest.TestCase):
         self.assertEqual(json.loads(llm._clean_json('{"skip": true}')), {"skip": True})
 
 
+    def test_freellmapi_uses_openai_compatible_endpoint_and_configured_model(self):
+        from unittest.mock import patch
+        response = type("Response", (), {
+            "status_code": 200,
+            "text": '{"choices":[{"message":{"content":"{\\"ok\\":true}"}}]}',
+            "json": lambda self: {"choices": [{"message": {"content": '{"ok":true}'}}]},
+        })()
+        with patch.object(llm, "FREELLMAPI_URL", "https://gateway.example/v1"), patch.object(llm, "FREELLMAPI_KEY", "test-key"), patch.object(llm, "FREELLMAPI_MODEL", "auto"), patch("llm.requests.post", return_value=response) as post:
+            self.assertEqual(list(llm._freellmapi("make a story")), ['{"ok":true}'])
+        args, kwargs = post.call_args
+        self.assertEqual(args[0], "https://gateway.example/v1/chat/completions")
+        self.assertEqual(kwargs["headers"]["Authorization"], "Bearer test-key")
+        self.assertEqual(kwargs["json"]["model"], "auto")
+
+
 class SeriesTests(unittest.TestCase):
     def test_video_prompt_uses_shorter_caption_story(self):
         self.assertIn("140-180 words", series.VIDEO_RULES)
