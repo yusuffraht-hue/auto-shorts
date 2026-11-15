@@ -1,9 +1,12 @@
 """LLM helper. Returns validated JSON.
-Provider order: Gemini -> Groq -> GitHub Models -> Pollinations.
+Provider order: FreeLLMAPI (when configured) -> Gemini -> Groq -> GitHub Models -> Pollinations.
 """
 import json, os, random, re, time, requests
 
 GH = os.environ.get("GITHUB_TOKEN", "")
+FREELLMAPI_URL = os.environ.get("FREELLMAPI_BASE_URL", "").strip().rstrip("/")
+FREELLMAPI_KEY = os.environ.get("FREELLMAPI_API_KEY", "").strip()
+FREELLMAPI_MODEL = os.environ.get("FREELLMAPI_MODEL", "auto").strip() or "auto"
 GEMINI = GROQ = ""
 
 
@@ -94,6 +97,30 @@ def _clean_json(out):
         obj["tags"] = []
     return json.dumps(obj)
 
+
+
+def _freellmapi(prompt):
+    """Call a remotely reachable FreeLLMAPI OpenAI-compatible gateway."""
+    if not FREELLMAPI_URL or not FREELLMAPI_KEY:
+        return
+    # Accept either the server origin or an origin already ending in /v1.
+    base = FREELLMAPI_URL[:-3] if FREELLMAPI_URL.endswith("/v1") else FREELLMAPI_URL
+    r = requests.post(
+        f"{base}/v1/chat/completions",
+        headers={"Authorization": f"Bearer {FREELLMAPI_KEY}",
+                 "Accept": "application/json", "Content-Type": "application/json"},
+        json={"model": FREELLMAPI_MODEL, "temperature": 0.9, "max_tokens": 10000,
+              "response_format": {"type": "json_object"},
+              "messages": [{"role": "user", "content": prompt}]},
+        timeout=180)
+    print("llm: freellmapi", r.status_code, repr(r.text[:160]))
+    if r.status_code == 200:
+        try:
+            yield r.json()["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError, ValueError):
+            print("llm: freellmapi returned no chat content")
+    elif r.status_code == 429:
+        time.sleep(20)
 
 def _gemini(prompt):
     for model in ("gemini-2.5-flash", "gemini-2.0-flash"):
@@ -201,6 +228,8 @@ def _pollinations(prompt):
 
 def call_llm(prompt):
     sources = []
+    if FREELLMAPI_URL and FREELLMAPI_KEY:
+        sources.append(("freellmapi", _freellmapi, 2))
     if GEMINI:
         sources.append(("gemini", _gemini, 2))
     if GROQ:
