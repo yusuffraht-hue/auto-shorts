@@ -42,7 +42,7 @@ Never copy dialogue or prose from an existing work."""
 
 SPEC = """Return ONLY this JSON structure:
 {"title":"curiosity-driven title under 55 chars","description":"2 short sentences",
- "tags":["..."],"hero":"HERO_RULE","full_story":"180-240 words, paragraphs separated by blank lines",
+ "tags":["..."],"hero":"HERO_RULE","full_story":"140-180 words, paragraphs separated by blank lines",
  "scenes":[{"line":"short narration","image_prompt":"IMAGE_RULE"}]}
 Exactly 10 scene objects. No markdown fences."""
 
