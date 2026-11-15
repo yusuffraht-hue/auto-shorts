@@ -147,7 +147,12 @@ def get_image(prompt, path, seed):
                 time.sleep(3)
                 return
             m = re.search(r"Retry after (\d+)s", r.text)
-            wait = int(m.group(1)) + 3 if m else min(45, 15 + attempt * 3)
+            if m:
+                wait = int(m.group(1)) + 3
+            elif r.status_code == 402 or "FREE_LIMIT" in r.text or "every 45 seconds" in r.text:
+                wait = 48
+            else:
+                wait = min(45, 15 + attempt * 3)
         except requests.RequestException as e:
             print("image retry:", e)
         time.sleep(wait)
