@@ -47,10 +47,7 @@ class LLMValidationTests(unittest.TestCase):
             "text": '{"choices":[{"message":{"content":"{\\"ok\\":true}"}}]}',
             "json": lambda self: {"choices": [{"message": {"content": '{"ok":true}'}}]},
         })()
-        with patch.object(llm, "FREELLMAPI_URL", "https://gateway.example/v1"), \\
-             patch.object(llm, "FREELLMAPI_KEY", "test-key"), \\
-             patch.object(llm, "FREELLMAPI_MODEL", "auto"), \\
-             patch("llm.requests.post", return_value=response) as post:
+        with patch.object(llm, "FREELLMAPI_URL", "https://gateway.example/v1"), patch.object(llm, "FREELLMAPI_KEY", "test-key"), patch.object(llm, "FREELLMAPI_MODEL", "auto"), patch("llm.requests.post", return_value=response) as post:
             self.assertEqual(list(llm._freellmapi("make a story")), ['{"ok":true}'])
         args, kwargs = post.call_args
         self.assertEqual(args[0], "https://gateway.example/v1/chat/completions")
