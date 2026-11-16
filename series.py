@@ -61,14 +61,14 @@ TOWN_THEMES = [
 WORKS = {
     "Jujutsu Kaisen": ("A student joins sorcerers who fight curses; major story elements include cursed objects, school missions, rival schools, Shibuya and the Culling Game.", True),
     "Black Clover": ("Two orphans compete to become Wizard King; one has no magic but gains anti-magic, joins the Black Bulls and faces major kingdom threats.", True),
-    "Lord of the Mysteries": ("A modern man awakens as Klein in a steampunk Victorian world of Beyonder potion sequences, secret churches, a Tarot club and a mysterious gray space.", True),
+    "Lord of the Mysteries": ("Zhou Mingrui awakens in the body of Klein Moretti in an alternate Victorian-era world. He is trying to understand Klein’s death and his own arrival. The world includes steam-powered machinery, churches, divination, tarot, potions and sealed artifacts. Beyonder potions grant extraordinary abilities. Klein encounters a mysterious space above gray fog and summons two other people there, forming the Tarot Club.", True),
     "Shadow Slave": ("Sunny is drawn by the Nightmare Spell into a deadly dream world, awakens a shadow-related Aspect and struggles to survive.", True),
     "A Regressor's Tale of Cultivation": ("A cultivation story involving a protagonist who regresses and tries to change his fate.", False),
     "The Artist Who Paints Dungeons": ("A fantasy story centered on an artist and dungeon-related paintings.", False),
 }
 
 
-def _fill(spec, hero, image):
+RECAP_RULES = """RECAP ACCURACY AND ORIGINALITY:\nThe background note is the complete approved canon fact sheet for this episode. Treat only facts explicitly stated in it as canon. Do not invent or infer specific events, locations, rules, objects, powers, characters, relationships, motives, outcomes, or chronology. Do not turn a setting detail into a rule. Do not invent a twist to fill the scene template. If these notes cannot support a coherent recap without padding or invented facts, return only {"skip":true}. Add one concise original analytical observation about the stated facts, clearly framed as commentary rather than canon; do not merely retell events. Never quote the source work.\n"""\n\n\ndef _fill(spec, hero, image):
     return spec.replace("HERO_RULE", hero).replace("IMAGE_RULE", image)
 
 
@@ -110,8 +110,9 @@ def build_anime(hist, avoid=()):
     sure = ("Use only plot details you are confident are real. If unsure, return only {\"skip\":true}.")
     if kind == "recap":
         prev = [x["summary"] for x in hist["log"].get(work, [])[-3:]]
-        brief = (f"Unofficial recap Part {n} of {work}. Background: {hint}. Part 1 covers premise and opening "
-                 f"events; later parts continue in chronological order. Previously covered: {prev}. {sure}")
+        brief = (f"Unofficial recap Part {n} of {work}. Verified background facts: {hint}. "
+                 f"Part 1 covers the premise and opening events; later parts continue chronologically. "
+                 f"Previously covered: {prev}. {sure}\\n{RECAP_RULES}")
     else:
         brief = (f"Create an ORIGINAL fan what-if inspired by {work}. Background: {hint}. Clearly label it "
                  f"as speculation, not canon. {sure}")
