@@ -1,0 +1,26 @@
+name: blender-shots-test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Blender
+        run: sudo apt-get update && sudo apt-get install -y blender
+      - name: Render sample shots
+        run: |
+          mkdir -p shots_out
+          start=$(date +%s)
+          blender -b -noaudio -P blender/render_shots.py -- blender/sample_spec.json shots_out 2>&1 | grep -E "^SHOT|Error|Traceback|rror:" | tail -30
+          echo "render seconds: $(( $(date +%s) - start ))"
+          ls shots_out
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: blender-shots-test
+          path: shots_out/*.png
+          if-no-files-found: ignore
