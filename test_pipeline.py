@@ -43,6 +43,8 @@ class LLMValidationTests(unittest.TestCase):
 
 class SeriesTests(unittest.TestCase):
     def test_video_prompt_uses_shorter_caption_story(self):
+        self.assertIn("30-40 second Short", series.VIDEO_RULES)
+        self.assertNotIn("45-second video", series.VIDEO_RULES)
         self.assertIn("140-180 words", series.VIDEO_RULES)
         self.assertIn('"full_story":"140-180 words', series.SPEC)
         self.assertIn("5-7 spoken words", llm.SUFFIX)
