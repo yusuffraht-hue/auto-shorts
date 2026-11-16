@@ -41,7 +41,10 @@ def plan(data, seed=1):
     shots = []
     for i, sc in enumerate(data["scenes"]):
         t = (sc.get("line", "") + " " + sc.get("image_prompt", "")).lower()
-        if _has(t, ("classroom", "school", "teacher", "blackboard", "lesson", "student", "homework")):
+        first = sc.get("image_prompt", "").strip().lower().replace(",", " ").split()[:1]
+        if first and first[0] in ("street", "park", "classroom", "house"):
+            setting = first[0]
+        elif _has(t, ("classroom", "school", "teacher", "blackboard", "lesson", "student", "homework")):
             setting = "classroom"
         elif _has(t, ("park", "garden", "forest", "pond", "bench", "meadow", "playground", "field")):
             setting = "park"
@@ -73,7 +76,7 @@ def plan(data, seed=1):
             emo = "neutral"
         if _has(t, ("key",)):
             prop = "key"
-        elif _has(t, ("orb", "glow", "crystal", "light", "magic")):
+        elif _has(t, ("orb", "crystal", "glowing sphere", "magic ball")):
             prop = "orb"
         elif _has(t, ("book", "diary", "journal", "manual")):
             prop = "book"

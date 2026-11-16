@@ -18,6 +18,20 @@ try:
     scn.cycles.denoiser = "OPENIMAGEDENOISE"
 except Exception:
     pass
+try:
+    scn.cycles.sample_clamp_direct = 6.0
+    scn.cycles.sample_clamp_indirect = 1.5
+    scn.cycles.max_bounces = 4
+    scn.cycles.diffuse_bounces = 2
+    scn.cycles.glossy_bounces = 1
+    scn.cycles.caustics_reflective = False
+    scn.cycles.caustics_refractive = False
+except Exception as e:
+    print("cycles tuning skipped:", e)
+try:
+    print("OIDN available:", bpy.app.build_options.openimagedenoise)
+except Exception:
+    print("OIDN flag unavailable")
 scn.render.resolution_x, scn.render.resolution_y = W, H
 scn.render.resolution_percentage = 100
 scn.render.image_settings.file_format = "PNG"
@@ -258,8 +272,8 @@ def character(c, x, y, yaw, pose, emotion):
 def add_prop(kind, fx, fy):
     made = []
     if kind == "orb":
-        made.append(sphere((fx + 1.1, fy - 0.7, 1.9), 0.28, (0.4, 0.8, 1.0), emit=14))
-        made.append(light("POINT", (fx + 1.1, fy - 0.8, 1.9), 120, (0.4, 0.8, 1.0)))
+        made.append(sphere((fx + 1.1, fy - 0.7, 1.9), 0.28, (0.4, 0.8, 1.0), emit=4))
+        made.append(light("POINT", (fx + 1.1, fy - 0.8, 1.9), 25, (0.4, 0.8, 1.0)))
     elif kind == "key":
         made.append(box((fx + 1.0, fy - 0.7, 1.7), (0.1, 0.55, 0.1), (0.95, 0.75, 0.15), emit=1.5))
         made.append(box((fx + 1.0, fy - 1.0, 1.7), (0.1, 0.25, 0.25), (0.95, 0.75, 0.15), emit=1.5))

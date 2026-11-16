@@ -80,7 +80,7 @@ Theme: {theme}. End with a strong cliffhanger. Never use real characters or plot
 Avoid repeating: {recent}.
 {VIDEO_RULES}
 {_fill(SPEC, "15-word description of the blocky protagonist's clothes and hair",
-       "visual setting, action, camera angle and lighting")}"""
+       "FIRST WORD must be one location: street, park, classroom or house; then action, camera angle and lighting")}"""
     return {"series": "town", "kind": "town", "prompt": prompt, "style": STYLE_TOWN,
             "voice": "en-US-AndrewMultilingualNeural",
             "hero_default": "a friendly blocky toy character with a bright jacket",

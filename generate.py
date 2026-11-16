@@ -139,7 +139,7 @@ def make_clip(i, scene, hero, seed, style):
     prompt = f"{scene['image_prompt']}. Composition: {SHOT_COMPOSITIONS[i % len(SHOT_COMPOSITIONS)]}. Visual anchor: {hero}. {style}"
     shot = OUT / f"shot_{i}.png"
     if shot.exists():
-        img, pre = shot, "hqdn3d=6:6:0:0,"  # Blender still: smooth render grain
+        img, pre = shot, "nlmeans=s=8:p=7:r=15,"  # Blender still: smooth render grain
     else:
         get_image(prompt, img, seed)
         pre = "crop=iw:floor(ih*0.94/2)*2:0:0,"  # trim the free image service's corner watermark
