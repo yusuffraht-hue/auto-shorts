@@ -12,9 +12,10 @@ bpy.ops.wm.read_factory_settings(use_empty=True)
 scn = bpy.context.scene
 scn.render.engine = "CYCLES"
 scn.cycles.device = "CPU"
-scn.cycles.samples = SPEC.get("samples", 32)
+scn.cycles.samples = SPEC.get("samples", 40)
 try:
     scn.cycles.use_denoising = True
+    scn.cycles.denoiser = "OPENIMAGEDENOISE"
 except Exception:
     pass
 scn.render.resolution_x, scn.render.resolution_y = W, H
@@ -115,7 +116,7 @@ def build_street(ox):
             x = ox + side * 4.2
             box((x, yy, 2.0), (0.15, 0.15, 4.0), (0.2, 0.2, 0.22))
             sphere((x, yy, 4.1), 0.3, (1.0, 0.85, 0.5), emit=6)
-            LAMPS.append(light("POINT", (x, yy, 3.9), 1200, (1, 0.8, 0.5)))
+            LAMPS.append(light("POINT", (x, yy, 3.9), 2400, (1, 0.8, 0.5)))
     for (cx, cy), c in [((-2, 14), (0.9, 0.15, 0.15)), ((2, 26), (0.15, 0.4, 0.9)),
                         ((-2, 40), (0.95, 0.85, 0.2)), ((2, 54), (0.9, 0.9, 0.92))]:
         box((ox + cx, cy, 0.55), (1.8, 3.8, 0.9), c)
@@ -144,7 +145,7 @@ def build_park(ox):
         x = ox + 5.5
         box((x, yy, 2.0), (0.15, 0.15, 4.0), (0.2, 0.2, 0.22))
         sphere((x, yy, 4.1), 0.3, (1.0, 0.85, 0.5), emit=6)
-        LAMPS.append(light("POINT", (x, yy, 3.9), 1200, (1, 0.8, 0.5)))
+        LAMPS.append(light("POINT", (x, yy, 3.9), 2400, (1, 0.8, 0.5)))
 
 
 def room(ox, length=28, width=20, wall=(0.92, 0.9, 0.8), floor=(0.75, 0.6, 0.4)):
@@ -289,22 +290,22 @@ con.up_axis = "UP_Y"
 def set_time(kind, interior):
     if interior:
         bg.inputs[0].default_value = (0.6, 0.65, 0.78, 1)
-        bg.inputs[1].default_value = 0.15
+        bg.inputs[1].default_value = 0.3
         sun.data.energy = 0
     elif kind == "night":
         bg.inputs[0].default_value = (0.04, 0.05, 0.12, 1)
-        bg.inputs[1].default_value = 0.7
-        sun.data.energy, sun.data.color = 0.5, (0.5, 0.6, 1.0)
+        bg.inputs[1].default_value = 1.1
+        sun.data.energy, sun.data.color = 0.9, (0.55, 0.65, 1.0)
         sun.rotation_euler = (math.radians(55), 0, math.radians(30))
     elif kind == "dusk":
         bg.inputs[0].default_value = (1.0, 0.55, 0.35, 1)
-        bg.inputs[1].default_value = 0.9
-        sun.data.energy, sun.data.color = 3.0, (1.0, 0.6, 0.35)
+        bg.inputs[1].default_value = 0.8
+        sun.data.energy, sun.data.color = 2.2, (1.0, 0.6, 0.35)
         sun.rotation_euler = (math.radians(80), math.radians(5), math.radians(25))
     else:
         bg.inputs[0].default_value = (0.55, 0.78, 1.0, 1)
-        bg.inputs[1].default_value = 1.1
-        sun.data.energy, sun.data.color = 4.0, (1, 1, 1)
+        bg.inputs[1].default_value = 0.85
+        sun.data.energy, sun.data.color = 2.4, (1, 1, 1)
         sun.rotation_euler = (math.radians(48), math.radians(8), math.radians(25))
     for l in LAMPS:
         l.hide_render = (kind == "day")

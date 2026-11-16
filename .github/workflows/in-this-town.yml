@@ -30,7 +30,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install ffmpeg and fonts
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core blender
       - name: Install Python deps
         run: pip install -r requirements.txt
       - name: Make and upload the short
@@ -45,6 +45,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           PRIVACY: ${{ vars.PRIVACY || 'private' }}
           DRY_RUN: ${{ inputs.dry_run || false }}
+          USE_BLENDER: "1"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

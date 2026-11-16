@@ -1,7 +1,7 @@
 """Pipeline for one series (set SERIES=town or anime): story (LLM) -> voice with word timings
 (edge-tts) -> images (Pollinations flux) -> vertical video with big word-by-word captions
 (ffmpeg) -> YouTube upload -> episode history."""
-import asyncio, json, os, pathlib, random, re, subprocess, textwrap, time, urllib.parse
+import asyncio, json, os, pathlib, random, re, shutil, subprocess, textwrap, time, urllib.parse
 
 import edge_tts
 import requests
@@ -137,7 +137,12 @@ def chunks(words, dur):
 def make_clip(i, scene, hero, seed, style):
     img, aud, clip = OUT / f"s{i}.jpg", OUT / f"s{i}.mp3", OUT / f"s{i}.mp4"
     prompt = f"{scene['image_prompt']}. Composition: {SHOT_COMPOSITIONS[i % len(SHOT_COMPOSITIONS)]}. Visual anchor: {hero}. {style}"
-    get_image(prompt, img, seed)
+    shot = OUT / f"shot_{i}.png"
+    if shot.exists():
+        img, pre = shot, "hqdn3d=6:6:0:0,"  # Blender still: smooth render grain
+    else:
+        get_image(prompt, img, seed)
+        pre = "crop=iw:floor(ih*0.94/2)*2:0:0,"  # trim the free image service's corner watermark
     words = asyncio.run(tts_words(scene["line"], aud))
     dur = duration(aud) + 0.35
     if not words:
@@ -146,7 +151,7 @@ def make_clip(i, scene, hero, seed, style):
     frames = int(dur * 25)
     zoom = ("z='min(zoom+0.0011,1.22)'" if i % 2 == 0
             else "z='if(eq(on,1),1.22,max(zoom-0.0011,1.0))'")
-    vf = ("scale=1620:2880:force_original_aspect_ratio=increase,crop=1620:2880,"
+    vf = (pre + "scale=1620:2880:force_original_aspect_ratio=increase,crop=1620:2880,"
           f"zoompan={zoom}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={frames}:s=1080x1920:fps=25")
     for k, (s, e, txt) in enumerate(caps):
         cf = OUT / f"c{i}_{k}.txt"
@@ -161,6 +166,25 @@ def make_clip(i, scene, hero, seed, style):
          "-ar", "44100", str(clip)],
         check=True, capture_output=True)
     return clip
+
+
+def blender_stills(data):
+    """Town series: render consistent 3D blocky-town stills with Blender (free, CPU).
+    Any failure just falls back to AI images for the scenes without a still."""
+    if os.environ.get("USE_BLENDER") != "1" or not shutil.which("blender"):
+        return
+    try:
+        import shots
+        spec = shots.plan(data)
+        (OUT / "shots.json").write_text(json.dumps(spec))
+        t0 = time.time()
+        r = subprocess.run(["blender", "-b", "-noaudio", "-P", "blender/render_shots.py", "--",
+                            str(OUT / "shots.json"), str(OUT)],
+                           capture_output=True, text=True, timeout=1800)
+        print("blender:", r.returncode, "%.0fs" % (time.time() - t0),
+              [l for l in r.stdout.splitlines() if l.startswith("SHOT")][-12:], r.stderr[-300:])
+    except Exception as e:
+        print("blender stills failed, using AI images:", repr(e)[:200])
 
 
 def build_video(data):
@@ -214,6 +238,7 @@ if __name__ == "__main__":
     print(json.dumps({k: v for k, v in data.items() if k != "full_story"}, indent=2))
     (OUT / "story.txt").write_text(data["title"] + "\n\n" + data["full_story"] + "\n\n"
                                    + " ".join("#" + t.replace(" ", "") for t in data["tags"]))
+    blender_stills(data)
     video = build_video(data)
     dry_run = os.environ.get("DRY_RUN", "false").lower() == "true"
     if dry_run:
