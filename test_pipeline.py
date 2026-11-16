@@ -100,6 +100,14 @@ class SeriesTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 series.build("anime", hist)
 
+    def test_anime_recap_prompt_enforces_canon_fact_sheet(self):
+        hist = {"episodes": [], "works": {}, "log": {}}
+        with patch.dict(os.environ, {"WORK": "Lord of the Mysteries", "FORMAT": "recap"}):
+            meta = series.build("anime", hist)
+        self.assertIn(series.RECAP_RULES, meta["prompt"])
+        self.assertIn("Verified background facts:", meta["prompt"])
+        self.assertIn('"skip":true', meta["prompt"])
+
 
 if __name__ == "__main__":
     unittest.main()
