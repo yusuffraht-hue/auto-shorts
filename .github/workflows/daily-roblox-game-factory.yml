@@ -1,0 +1,33 @@
+name: daily-roblox-game-factory
+
+on:
+  schedule:
+    - cron: "30 16 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-roblox-game-factory
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Run offline generator tests
+        run: python -m unittest discover -s roblox_game_factory/tests -v
+      - name: Generate today's Roblox project
+        run: python roblox_game_factory/daily_factory.py --output dist/daily-games
+      - name: Save private source artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-roblox-game-${{ github.run_id }}
+          path: dist/daily-games/
+          retention-days: 30
