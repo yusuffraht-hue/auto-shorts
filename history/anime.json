@@ -9,16 +9,28 @@
    "title": "Jujutsu Kaisen What If: What If the Cursed Mirror Fell into One Student's Mouth?",
    "kind": "whatif",
    "work": "Jujutsu Kaisen"
+  },
+  {
+   "title": "Lord of the Mysteries Recap #1: Forbidden Breath: A Modern Man's Steampunk Awakening",
+   "kind": "recap",
+   "work": "Lord of the Mysteries"
   }
  ],
  "works": {
-  "Black Clover": 1
+  "Black Clover": 1,
+  "Lord of the Mysteries": 1
  },
  "log": {
   "Black Clover": [
    {
     "n": 1,
     "summary": "Follow a grimoireless orphan and his lightningswift rival as they clash with fate to rise to glory. Their first steps set the spark for a kingdom's destiny."
+   }
+  ],
+  "Lord of the Mysteries": [
+   {
+    "n": 1,
+    "summary": "A modern soul awakens in a Victoriansteampunk city where breathing requires a potion. He races against secret forces to find the elixir that might restore his past."
    }
   ]
  }
