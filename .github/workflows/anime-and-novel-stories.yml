@@ -42,8 +42,8 @@ jobs:
     env:
       SERIES: anime
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install ffmpeg and fonts
@@ -64,7 +64,7 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run || false }}
           FORMAT: ${{ inputs.format || 'auto' }}
           WORK: ${{ inputs.work || 'auto' }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: anime-and-novel-stories
