@@ -29,7 +29,7 @@ STYLE_ANIME = ("cinematic dark-fantasy digital illustration, dramatic rim lighti
 
 VIDEO_RULES = """Write TWO versions of the SAME story:
 (a) "full_story": 140-180 words, 3 short paragraphs, readable as a caption.
-(b) "scenes": exactly 10 scenes for a 45-second video.
+(b) "scenes": exactly 10 scenes for a 30-40 second Short.
 Each scene line is 5-7 natural spoken words. Use contractions where natural, varied sentence openings, simple vivid language, and punctuation that creates realistic pauses. Each image_prompt is 8-16 visual words. Vary the subject, setting, and camera angle across scenes; do not reuse the same silhouette pose or background.
 Scene 10 must end by telling viewers the full story is in the caption.
 1 HOOK: start immediately with the strangest rule, danger, or unanswered question. No greeting or setup before the hook.
