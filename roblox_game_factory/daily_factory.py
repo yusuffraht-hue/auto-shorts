@@ -14,10 +14,14 @@ CATALOG = [
 ]
 
 def choose_game(day, history=None):
-    history = history or []
-    pool = [g for g in CATALOG if g["id"] not in history[-len(CATALOG):]] or CATALOG
     digest = hashlib.sha256(day.isoformat().encode()).digest()
-    selected = pool[int.from_bytes(digest[:4], "big") % len(pool)]
+    if not history:
+        # The scheduled workflow has no external state: calendar rotation guarantees
+        # different archetypes on consecutive days without a database or API.
+        selected = CATALOG[day.toordinal() % len(CATALOG)]
+    else:
+        pool = [g for g in CATALOG if g["id"] not in history[-len(CATALOG):]] or CATALOG
+        selected = pool[int.from_bytes(digest[:4], "big") % len(pool)]
     return {**selected, "seed": int.from_bytes(digest[4:8], "big"), "date": day.isoformat()}
 
 def server_source(game):
