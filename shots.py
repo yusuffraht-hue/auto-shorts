@@ -39,16 +39,34 @@ def plan(data, seed=1):
     rnd = random.Random(seed)
     hero = look(data.get("hero", ""), seed)
     shots = []
+    inside_underground = False
     for i, sc in enumerate(data["scenes"]):
-        t = (sc.get("line", "") + " " + sc.get("image_prompt", "")).lower()
-        first = sc.get("image_prompt", "").strip().lower().replace(",", " ").split()[:1]
-        if first and first[0] in ("street", "park", "classroom", "house"):
+        line = sc.get("line", "").lower()
+        prompt = sc.get("image_prompt", "").strip().lower()
+        t = line + " " + prompt
+        first = prompt.replace(",", " ").split()[:1]
+        if _has(t, ("outside", "emerges", "emerge", "escapes the tunnel", "back above ground",
+                    "returns to street", "the next morning", "back at school")):
+            inside_underground = False
+        if _has(t, ("cavern", "cave", "tunnel", "basement", "hollow", "chamber", "sewer",
+                    "crypt", "subterranean", "underground")):
+            setting = "underground"
+            inside_underground = True
+        elif _has(t, ("library", "archive", "bookshelf", "book stacks")):
+            setting = "library"
+            inside_underground = False
+        elif _has(t, ("market", "marketplace", "bazaar", "market stalls", "town square", "plaza")):
+            setting = "market"
+            inside_underground = False
+        elif inside_underground:
+            setting = "underground"
+        elif first and first[0] in ("street", "park", "classroom", "house", "market", "underground", "library"):
             setting = first[0]
         elif _has(t, ("classroom", "school", "teacher", "blackboard", "lesson", "student", "homework")):
             setting = "classroom"
         elif _has(t, ("park", "garden", "forest", "pond", "bench", "meadow", "playground", "field")):
             setting = "park"
-        elif _has(t, ("house", "home", "bedroom", "kitchen", "living room", "attic", "basement", "indoors", "inside")):
+        elif _has(t, ("house", "home", "bedroom", "kitchen", "living room", "attic", "indoors", "inside")):
             setting = "house"
         else:
             setting = "street"
