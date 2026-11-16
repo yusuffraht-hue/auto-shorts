@@ -68,7 +68,11 @@ WORKS = {
 }
 
 
-RECAP_RULES = """RECAP ACCURACY AND ORIGINALITY:\nThe background note is the complete approved canon fact sheet for this episode. Treat only facts explicitly stated in it as canon. Do not invent or infer specific events, locations, rules, objects, powers, characters, relationships, motives, outcomes, or chronology. Do not turn a setting detail into a rule. Do not invent a twist to fill the scene template. If these notes cannot support a coherent recap without padding or invented facts, return only {"skip":true}. Add one concise original analytical observation about the stated facts, clearly framed as commentary rather than canon; do not merely retell events. Never quote the source work.\n"""\n\n\ndef _fill(spec, hero, image):
+RECAP_RULES = """RECAP ACCURACY AND ORIGINALITY:
+The background note is the complete approved canon fact sheet for this episode. Treat only facts explicitly stated in it as canon. Do not invent or infer specific events, locations, rules, objects, powers, characters, relationships, motives, outcomes, or chronology. Do not turn a setting detail into a rule. Do not invent a twist to fill the scene template. If these notes cannot support a coherent recap without padding or invented facts, return only {"skip":true}. Add one concise original analytical observation about the stated facts, clearly framed as commentary rather than canon; do not merely retell events. Never quote the source work.
+"""
+
+def _fill(spec, hero, image):
     return spec.replace("HERO_RULE", hero).replace("IMAGE_RULE", image)
 
 
