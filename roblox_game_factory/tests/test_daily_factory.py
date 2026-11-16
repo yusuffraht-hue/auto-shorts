@@ -12,6 +12,11 @@ class FactoryTests(unittest.TestCase):
    game=factory.choose_game(date.fromordinal(day.toordinal()+offset),seen)
    self.assertNotIn(game["id"],seen); seen.append(game["id"])
   self.assertEqual(len(seen),len(factory.CATALOG))
+ def test_calendar_rotation_changes_archetype_each_day(self):
+  start=date(2026,11,16)
+  ids=[factory.choose_game(date.fromordinal(start.toordinal()+i))["id"] for i in range(len(factory.CATALOG))]
+  self.assertEqual(len(set(ids)),len(factory.CATALOG))
+  self.assertNotEqual(factory.choose_game(start)["id"],factory.choose_game(date.fromordinal(start.toordinal()+1))["id"])
  def test_builds_rojo_project_and_test_plan(self):
   with tempfile.TemporaryDirectory() as tmp:
    result=factory.generate(Path(tmp),date(2026,11,16)); root=Path(result["path"])
