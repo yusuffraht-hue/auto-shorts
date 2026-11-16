@@ -55,7 +55,7 @@ local function setup(player)
  progress[player]=0
  local stats=Instance.new("Folder"); stats.Name="leaderstats"; stats.Parent=player
  local value=Instance.new("IntValue"); value.Name="Progress"; value.Parent=stats
- player.CharacterAdded:Connect(function() task.wait(1); notify(player,"""" + game["objective"] + """") end)
+ player.CharacterAdded:Connect(function() task.wait(1); notify(player,"Objective started.") end)
 end
 Players.PlayerAdded:Connect(setup)
 Players.PlayerRemoving:Connect(function(p) progress[p]=nil end)
