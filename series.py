@@ -116,7 +116,7 @@ def build_anime(hist, avoid=()):
         prev = [x["summary"] for x in hist["log"].get(work, [])[-3:]]
         brief = (f"Unofficial recap Part {n} of {work}. Verified background facts: {hint}. "
                  f"Part 1 covers the premise and opening events; later parts continue chronologically. "
-                 f"Previously covered: {prev}. {sure}\\n{RECAP_RULES}")
+                 f"Previously covered: {prev}. {sure}\n{RECAP_RULES}")
     else:
         brief = (f"Create an ORIGINAL fan what-if inspired by {work}. Background: {hint}. Clearly label it "
                  f"as speculation, not canon. {sure}")
