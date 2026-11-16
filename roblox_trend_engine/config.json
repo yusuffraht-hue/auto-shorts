@@ -1,0 +1,20 @@
+{
+  "search_terms": [
+    "egg hatching simulator",
+    "pet collecting simulator",
+    "grow a garden",
+    "creature evolution",
+    "anime battlegrounds",
+    "survival crafting",
+    "horror co-op",
+    "obby challenge",
+    "tycoon simulator",
+    "RNG luck simulator",
+    "tower defense"
+  ],
+  "max_results_per_term": 20,
+  "max_universes_to_enrich": 100,
+  "minimum_players_for_signal": 10,
+  "history_days_to_keep": 45,
+  "concepts_to_generate": 5
+}
