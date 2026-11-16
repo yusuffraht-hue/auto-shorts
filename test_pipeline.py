@@ -6,6 +6,7 @@ from unittest.mock import patch
 import generate
 import llm
 import series
+import shots
 
 
 class LLMValidationTests(unittest.TestCase):
@@ -55,6 +56,30 @@ class SeriesTests(unittest.TestCase):
     def test_visual_shot_list_has_ten_distinct_compositions(self):
         self.assertEqual(len(generate.SHOT_COMPOSITIONS), 10)
         self.assertEqual(len(set(generate.SHOT_COMPOSITIONS)), 10)
+
+    def test_town_shot_planner_keeps_story_specific_locations(self):
+        data = {"hero": "a red jacket", "scenes": [
+            {"line": "He slips down the hidden tunnel.",
+             "image_prompt": "house basement, brick stairs descending, worm's-eye view, dim lantern"},
+            {"line": "Gears spin, cloaked figures whisper.",
+             "image_prompt": "street cavern, glowing gears rotating, high angle, eerie teal"},
+            {"line": "A lever cracks, earth shivers loudly.",
+             "image_prompt": "classroom floor, lever pulled, close-up, dramatic shadows"},
+            {"line": "The book names Brickby as keeper.",
+             "image_prompt": "park library, massive book opened, low angle, golden dust"},
+            {"line": "The hero returns outside.",
+             "image_prompt": "street night, hero looking upward, dramatic tilt, neon rain"},
+        ]}
+        planned = shots.plan(data)
+        self.assertEqual(
+            [shot["setting"] for shot in planned["shots"]],
+            ["underground", "underground", "underground", "library", "street"],
+        )
+
+    def test_town_prompt_requires_scene_matched_visuals(self):
+        meta = series.build("town", {"episodes": [], "works": {}, "log": {}})
+        self.assertIn("exact action and location", meta["prompt"])
+        self.assertIn("market, underground or library", meta["prompt"])
 
     def test_caption_chunks_are_readable_and_timed(self):
         words = [(i * 0.4, (i + 1) * 0.4, w)
