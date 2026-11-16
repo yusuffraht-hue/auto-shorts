@@ -1,45 +1,65 @@
 # auto-shorts
 
-A zero-cost starting point for a daily vertical story Short.
+A free-first pipeline for two separate vertical-video series. Each series has its own prompts, style, voice, tags and episode history.
 
-Pipeline: story script (GitHub Models, with Pollinations text fallback) -> Edge TTS narration -> Pollinations images -> FFmpeg captions/render -> YouTube upload.
+## Series
 
-## What the current version improves
+- **In This Town** — original blocky-toy-town mysteries, strange rules, powers and recurring characters. Town scenes use CPU-rendered Blender stills when Blender is enabled; the pipeline falls back to generated images if rendering fails.
+- **Anime & Novel Stories** — unofficial recaps and clearly labelled fan what-if stories. Recaps use configured canon fact sheets and should be skipped when those notes cannot support an accurate episode. Visuals are symbolic rather than recognizable copies of characters or source artwork.
 
-- Story prompts require a clear rule, one protagonist, cause-and-effect escalation, a meaningful twist and a payoff.
-- Script validation rejects missing fields, incorrect scene counts and narration that is far too short or long.
-- The same detailed protagonist description is repeated in each image prompt to help visual continuity.
-- Default narration is slower and uses a conversational Edge TTS voice.
-- Captions use short phrases rather than flashing one or two words at a time, with a dark backing and safer screen placement.
-- Audio is loudness-normalized and the final render is checked before upload.
+The pipeline creates a script, narration, scene images, captions and a vertical MP4 using FFmpeg. It does not guarantee that every free provider will be available on every run.
 
-These changes improve the production process, but free image generation can still produce inconsistent characters and AI narration will not sound exactly like a human voice. Always watch the rendered Short before making it public.
+## GitHub Actions workflows
+
+- `.github/workflows/in-this-town.yml` — scheduled daily at 15:00 UTC.
+- `.github/workflows/anime-and-novel-stories.yml` — scheduled daily at 15:30 UTC.
+- `.github/workflows/pipeline-checks.yml` — Python syntax checks and offline unit tests on pushes and pull requests.
+- `.github/workflows/blender-shots-test.yml` — manual still-image rendering test for the Blender scene renderer.
+
+For manual runs of either series workflow, the `dry_run` input defaults to **true**. Scheduled runs are not dry runs. When YouTube credentials are configured, scheduled runs can upload videos; the default upload privacy is **private**. Generated MP4s and story text are also saved as short-lived GitHub Actions artifacts.
+
+Keep videos private while reviewing them. Do not change the `PRIVACY` repository variable to `public` unless the channel owner has reviewed the actual video and explicitly chosen to publish it.
+
+## Story and originality safeguards
+
+- Town stories must be original and must not borrow characters or plots from existing media.
+- Anime/novel recaps may use only facts supported by the selected work's configured canon notes. If those notes are insufficient, the model is instructed to return a skip response rather than invent events.
+- What-if episodes must be clearly described as speculation, not canon.
+- Do not copy protected dialogue, prose, panels, logos or footage.
+- Each episode should have a distinct story and meaningful viewer value; high output volume or a repeated template alone is not a monetization strategy.
+
+## Free-first providers
+
+Story generation tries available providers in this order: Gemini, Groq, GitHub Models, then Pollinations text. Provider access, rate limits and free-tier terms can change. Image generation uses Pollinations when a scene does not have a Blender still. Narration uses Edge TTS with a series-specific voice and fallback voices.
+
+No paid API or subscription is required by the repository's default design, but free services can be rate-limited, unavailable or changed without notice.
 
 ## Setup
 
-1. Google Cloud console: create a project, enable **YouTube Data API v3**, create an OAuth client (Web application) with redirect URI \`https://developers.google.com/oauthplayground\`.
-2. In OAuth Playground (gear icon -> use your own credentials), authorize scope \`https://www.googleapis.com/auth/youtube.upload\` with your channel's Google account and exchange the code for a refresh token.
-3. Repo -> Settings -> Secrets and variables -> Actions -> add secrets:
-   \`YT_CLIENT_ID\`, \`YT_CLIENT_SECRET\`, \`YT_REFRESH_TOKEN\`.
-4. Actions tab -> \`daily-short\` -> Run workflow. The default privacy is PRIVATE.
-5. Keep videos private while testing. Only change the \`PRIVACY\` repository variable to \`public\` after you have reviewed the results and confirmed your upload/API setup allows public publishing.
+For YouTube uploads, configure these repository Actions secrets:
 
-## Free customization
+- `YT_CLIENT_ID`
+- `YT_CLIENT_SECRET`
+- `YT_REFRESH_TOKEN`
 
-The workflow uses these defaults if no variables are set:
+Optional story-provider secrets:
 
-- \`VOICE\`: \`en-US-BrianNeural\`
-- \`RATE\`: \`-5%\`
-- \`PRIVACY\`: \`private\`
-- \`MODEL\`: \`openai/gpt-4o-mini\` (the script currently uses the GitHub Models endpoint first)
+- `GEMINI_API_KEY`
+- `GROQ_API_KEY`
 
-You can set \`VOICE\` and \`RATE\` as repository variables under Settings -> Secrets and variables -> Actions -> Variables. Edge TTS voice availability can change; if a voice fails, use a supported English voice from the Edge TTS voice list.
+The GitHub Actions token is supplied to the workflow for GitHub Models access. Never commit API keys, OAuth tokens or passwords to the repository.
 
-## Important limits
+To run offline checks locally:
 
-- GitHub Actions and free image/text services have rate limits and can change their free access at any time.
-- New, unaudited YouTube API projects can be limited to private uploads. Public publishing may require Google's YouTube API compliance audit.
-- YouTube API quota limits apply.
-- Repetitive, mass-produced AI videos may not qualify for monetization under YouTube's inauthentic-content rules. Add original creative direction, meaningful editing and your own contribution; don't rely on volume alone.
-- The code in this repository uploads to YouTube. Any separate Composio workflow for other platforms is managed separately.
-- Never put API keys, OAuth tokens or passwords in source code or commit them to GitHub. Store secrets in GitHub Actions Secrets.
+```bash
+python -m compileall -q .
+python -m unittest discover -v
+```
+
+## Important limitations
+
+- GitHub Actions and free text/image/TTS providers have usage limits and can change their free access at any time.
+- A successful workflow run does not prove that a video is good; watch the actual MP4 and check the story, narration, captions and visuals before any public release.
+- Private and unlisted Shorts do not count toward YouTube's qualified public Shorts-view thresholds.
+- YouTube monetization is reviewed at the channel level. Repetitive, mass-produced or minimally varied AI content may be ineligible even when every upload is technically original.
+- If the creator is under 18, AdSense for YouTube requires an approved account belonging to a parent or guardian over 18; do not create an AdSense account in a minor's name.
