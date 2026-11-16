@@ -205,8 +205,62 @@ def build_house(ox):
     light("AREA", (ox, 6, 4.8), 700, (1, 0.95, 0.85), size=8)
 
 
+def build_market(ox):
+    box((ox, 20, -0.25), (80, 140, 0.5), (0.58, 0.53, 0.44))
+    box((ox, 18, 0.02), (30, 120, 0.08), (0.42, 0.38, 0.31))
+    awnings = [(0.82, 0.18, 0.15), (0.16, 0.42, 0.72), (0.9, 0.72, 0.18)]
+    for side in (-1, 1):
+        for index, y in enumerate((-4, 10, 24)):
+            x = ox + side * 8
+            wood = (0.34, 0.2, 0.1)
+            box((x, y, 1.0), (5.5, 3.8, 2.0), wood)
+            box((x, y, 2.25), (6.2, 4.5, 0.3), awnings[index % len(awnings)])
+            for dx in (-2.6, 2.6):
+                box((x + dx, y, 1.35), (0.18, 0.18, 2.7), wood)
+            for dx in (-1.4, 0, 1.4):
+                box((x + dx, y - 1.2, 1.7), (0.65, 0.5, 0.55),
+                    (0.65, 0.3 + 0.08 * index, 0.12))
+    light("AREA", (ox, 4, 12), 1200, (1.0, 0.82, 0.62), size=14)
+
+
+def build_underground(ox):
+    rock = (0.12, 0.14, 0.19)
+    floor = (0.08, 0.09, 0.12)
+    box((ox, 20, -0.25), (34, 110, 0.5), floor)
+    box((ox, 20, 8.5), (34, 110, 1.0), (0.07, 0.08, 0.11))
+    for side in (-1, 1):
+        box((ox + side * 16, 20, 4), (1.2, 110, 8), rock)
+        for y in (-12, 2, 16, 30, 44):
+            box((ox + side * 12.5, y, 4.2), (1.8, 2.2, 8.4), (0.17, 0.18, 0.23))
+            sphere((ox + side * 11.2, y - 1, 3.6), 0.6, (0.25, 0.72, 0.9), emit=2.5)
+    for y in (-10, 4, 18, 32):
+        box((ox, y, 7.8), (28, 1.5, 1.3), (0.18, 0.19, 0.24))
+    light("AREA", (ox, 2, 6.5), 650, (0.35, 0.58, 0.85), size=10)
+    light("AREA", (ox, 24, 6.5), 450, (0.25, 0.45, 0.75), size=8)
+
+
+def build_library(ox):
+    room(ox, length=38, width=24, wall=(0.28, 0.22, 0.16), floor=(0.34, 0.24, 0.16))
+    wood = (0.22, 0.12, 0.06)
+    book_colors = [(0.55, 0.12, 0.1), (0.12, 0.25, 0.5), (0.18, 0.4, 0.24),
+                   (0.65, 0.48, 0.16), (0.35, 0.2, 0.5)]
+    for x in (-8, -4, 0, 4, 8):
+        box((ox + x, 17, 2.65), (3.5, 0.65, 5.3), wood)
+        for z in (1.0, 2.15, 3.3, 4.45):
+            box((ox + x, 16.62, z), (3.35, 0.22, 0.14), (0.72, 0.53, 0.28))
+            for j in (-1, 0, 1):
+                color = book_colors[(int(x) + j + int(z * 10)) % len(book_colors)]
+                box((ox + x + j * 0.82, 16.48, z + 0.48), (0.55, 0.18, 0.82), color)
+    box((ox, 4, 0.95), (7, 3.8, 0.3), wood)
+    box((ox, 4, 0.55), (0.22, 0.22, 1.1), wood)
+    light("AREA", (ox, 5, 4.8), 900, (1.0, 0.78, 0.5), size=9)
+    light("AREA", (ox, 15, 4.8), 700, (1.0, 0.82, 0.58), size=8)
+
+
 ZONES = {"street": (0, build_street, False), "park": (300, build_park, False),
-         "classroom": (600, build_classroom, True), "house": (900, build_house, True)}
+         "classroom": (600, build_classroom, True), "house": (900, build_house, True),
+         "market": (1200, build_market, False), "underground": (1500, build_underground, True),
+         "library": (1800, build_library, True)}
 FOCUS_Y = 5.0
 for name in {s["setting"] for s in SPEC["shots"]}:
     ZONES[name][1](ZONES[name][0])
