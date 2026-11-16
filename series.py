@@ -81,10 +81,11 @@ def build_town(hist):
     theme = random.choice(TOWN_THEMES)
     prompt = f"""Write an ORIGINAL "In this town..." story about ONE invented protagonist in a blocky toy-town.
 Theme: {theme}. End with a strong cliffhanger. Never use real characters or plots from existing media.
+Every image_prompt must show the exact action and location in its narration line. Do not move a scene to an unrelated setting or invent props that change the story.
 Avoid repeating: {recent}.
 {VIDEO_RULES}
 {_fill(SPEC, "15-word description of the blocky protagonist's clothes and hair",
-       "FIRST WORD must be one location: street, park, classroom or house; then action, camera angle and lighting")}"""
+       "FIRST WORD must be the best matching location: street, park, classroom, house, market, underground or library; then show the exact narrated action, camera angle and lighting. Never choose an unrelated setting.")}"""
     return {"series": "town", "kind": "town", "prompt": prompt, "style": STYLE_TOWN,
             "voice": "en-US-AndrewMultilingualNeural",
             "hero_default": "a friendly blocky toy character with a bright jacket",
