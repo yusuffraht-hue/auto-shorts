@@ -63,7 +63,7 @@ def get_image(prompt, path, seed):
                 path.write_bytes(r.content)
                 time.sleep(3)
                 return
-            m = re.search(r"Retry after (\\d+)s", r.text)
+            m = re.search(r"Retry after (\d+)s", r.text)
             if m:
                 wait = int(m.group(1)) + 3
             elif r.status_code == 402 or "FREE_LIMIT" in r.text:
@@ -192,9 +192,17 @@ def upload_youtube(path, data):
             "tags": data.get("tags", [])[:15], "categoryId": "24"},
         "status": {"privacyStatus": PRIVACY, "selfDeclaredMadeForKids": False},
     }
-    res = yt.videos().insert(
-        part="snippet,status", body=body,
-        media_body=MediaFileUpload(str(path), mimetype="video/mp4", resumable=True)).execute()
+    body["status"]["containsSyntheticMedia"] = True  # honest AI-content disclosure
+    try:
+        res = yt.videos().insert(
+            part="snippet,status", body=body,
+            media_body=MediaFileUpload(str(path), mimetype="video/mp4", resumable=True)).execute()
+    except Exception as e:
+        print("upload retry without synthetic-media flag:", repr(e)[:150])
+        body["status"].pop("containsSyntheticMedia", None)
+        res = yt.videos().insert(
+            part="snippet,status", body=body,
+            media_body=MediaFileUpload(str(path), mimetype="video/mp4", resumable=True)).execute()
     print("uploaded:", f"https://www.youtube.com/watch?v={res['id']}", PRIVACY)
 
 

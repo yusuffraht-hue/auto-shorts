@@ -18,6 +18,8 @@ except Exception:
     pass
 scn.render.resolution_x, scn.render.resolution_y = 540, 960
 scn.render.fps = FPS
+scn.view_settings.view_transform = "Standard"
+scn.view_settings.look = "None"
 scn.frame_start, scn.frame_end = 1, N
 scn.render.image_settings.file_format = "PNG"
 scn.render.filepath = OUT + "/f_"
