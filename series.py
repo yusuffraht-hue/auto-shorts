@@ -141,7 +141,8 @@ def clean_what_if_title(title):
     """Remove a repeated 'What If' label because the series prefix already supplies it."""
     cleaned = re.sub(r"^\s*what[\s-]*if\s*[:—-]?\s*", "", str(title or ""), flags=re.IGNORECASE)
     cleaned = re.sub(r"\s+what[\s-]*if\s*$", "", cleaned, flags=re.IGNORECASE)
-    return cleaned.strip(" \t:—-") or "An Alternate Path"
+    cleaned = cleaned.strip(" \t:—-")
+    return (cleaned[0].upper() + cleaned[1:]) if cleaned else "An Alternate Path"
 
 
 def finish(meta, data, hist):
