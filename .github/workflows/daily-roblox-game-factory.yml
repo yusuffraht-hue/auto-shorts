@@ -15,17 +15,43 @@ concurrency:
 jobs:
   generate:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - name: Run offline generator tests
+      - name: Install Rojo and Luau tools (free, open source)
+        run: |
+          TAG=$(curl -sIL -o /dev/null -w '%{url_effective}' https://github.com/rojo-rbx/rojo/releases/latest | sed 's#.*/tag/##')
+          curl -sL -o rojo.zip "https://github.com/rojo-rbx/rojo/releases/download/${TAG}/rojo-${TAG#v}-linux-x86_64.zip"
+          unzip -qo rojo.zip rojo && chmod +x rojo
+          curl -sL -o luau.zip https://github.com/luau-lang/luau/releases/latest/download/luau-ubuntu.zip
+          unzip -qo luau.zip luau luau-analyze && chmod +x luau luau-analyze
+          ./rojo --version
+      - name: Run generator tests (includes simulated play-through)
+        env:
+          LUAU_DIR: ${{ github.workspace }}
         run: python -m unittest discover -s roblox_game_factory/tests -v
       - name: Generate today's Roblox project
         run: python roblox_game_factory/daily_factory.py --output dist/daily-games
-      - name: Save private source artifact
+      - name: Quality gate (Luau analysis and play-through)
+        env:
+          LUAU_DIR: ${{ github.workspace }}
+        run: python roblox_game_factory/check_game.py dist/daily-games
+      - name: Build the place file with Rojo
+        run: |
+          dir=$(ls -d dist/daily-games/*/ | head -1)
+          (cd "$dir" && "$GITHUB_WORKSPACE/rojo" build -o game.rbxl)
+          echo "PLACE_FILE=${dir}game.rbxl" >> "$GITHUB_ENV"
+      - name: Save to Roblox (only if configured; goes live only if ROBLOX_PUBLISH=1)
+        env:
+          ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
+          ROBLOX_UNIVERSE_ID: ${{ secrets.ROBLOX_UNIVERSE_ID }}
+          ROBLOX_PLACE_ID: ${{ secrets.ROBLOX_PLACE_ID }}
+          ROBLOX_PUBLISH: ${{ vars.ROBLOX_PUBLISH }}
+        run: python roblox_game_factory/publish_place.py "$PLACE_FILE"
+      - name: Save the game source and place file
         uses: actions/upload-artifact@v4
         with:
           name: daily-roblox-game-${{ github.run_id }}

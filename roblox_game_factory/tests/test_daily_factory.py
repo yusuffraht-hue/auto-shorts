@@ -28,7 +28,7 @@ class FactoryTests(unittest.TestCase):
  def test_client_never_awards_rewards(self):
   for game in factory.CATALOG:
    self.assertNotIn("FireServer",factory.client_source(game))
-   self.assertIn("Triggered:Connect",factory.server_source(game))
+   self.assertIn("Triggered:Connect",factory.server_source({**game,"seed":1}))
  def test_deterministic_per_date(self):
   d=date(2026,11,16); self.assertEqual(factory.choose_game(d),factory.choose_game(d))
 

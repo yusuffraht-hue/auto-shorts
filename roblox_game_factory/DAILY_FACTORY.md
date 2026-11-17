@@ -22,3 +22,15 @@ Crystal mining; floating-island parcel delivery; relic maze exploration; garden 
 ## Run locally
 python -m unittest discover -s roblox_game_factory/tests -v
 python roblox_game_factory/daily_factory.py --output dist/daily-games
+
+## No Roblox Studio needed (built and saved from GitHub)
+The daily workflow now builds `game.rbxl` with Rojo on GitHub's servers, runs a Luau check and a simulated
+play-through of every game, and can save the place to your Roblox experience through the free Open Cloud API.
+
+Optional setup (all free):
+1. Create an experience in Roblox Creator Hub and note its **Universe ID** and **Place ID**.
+2. Create an Open Cloud API key with the **Place Publishing** permission for that experience.
+3. Add repository secrets `ROBLOX_API_KEY`, `ROBLOX_UNIVERSE_ID`, `ROBLOX_PLACE_ID`.
+
+Uploads are **Saved** versions by default (they appear in Studio's version history and are not live). Set the
+repository variable `ROBLOX_PUBLISH` to `1` only when you have reviewed a build and want it live.
