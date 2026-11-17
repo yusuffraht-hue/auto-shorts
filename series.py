@@ -1,5 +1,5 @@
 """Two story series: prompts, visual styles, voices and episode history."""
-import json, os, pathlib, random
+import json, os, pathlib, random, re
 
 HIST_DIR = pathlib.Path("history")
 
@@ -41,7 +41,7 @@ Spoken narration only. No stage directions, generic filler, fake facts, or repet
 Never copy dialogue or prose from an existing work."""
 
 SPEC = """Return ONLY this JSON structure:
-{"title":"curiosity-driven title under 55 chars","description":"2 short sentences",
+{"title":"curiosity-driven title under 55 chars (never include the work name or the words recap / what if)","description":"2 short sentences",
  "tags":["..."],"hero":"HERO_RULE","full_story":"140-180 words, paragraphs separated by blank lines",
  "scenes":[{"line":"short narration","image_prompt":"IMAGE_RULE"}]}
 Exactly 10 scene objects. No markdown fences."""
@@ -138,11 +138,21 @@ def build(name, hist, avoid=()):
     return build_anime(hist, avoid) if name == "anime" else build_town(hist)
 
 
+def _clean_title(title, work):
+    """Drop the work name and 'recap' / 'what if' that the story writer sometimes repeats in the title."""
+    t = re.sub(re.escape(work), "", title, flags=re.I)
+    t = re.sub(r"(?i)\b(what[\s-]?if|recap)\b", "", t)
+    t = re.sub(r"\s*[:|\-]\s*(?=[:|\-])", "", t)
+    t = re.sub(r"\s+", " ", t).strip(" :|-")
+    return t or "Untitled"
+
+
 def finish(meta, data, hist):
     intro = data.get("description", "").strip()
     t = data.get("title", "Untitled").strip()
     if meta["series"] == "anime":
         w = meta["work"]
+        t = _clean_title(t, w)
         data["title"] = (f"{w} Recap #{meta['n']}: {t}" if meta["kind"] == "recap"
                          else f"{w} What If: {t}")
     data["tags"] = list(dict.fromkeys(meta["tags"] + data.get("tags", [])))[:15]
