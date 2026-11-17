@@ -149,6 +149,14 @@ def chunks(words, dur):
     return out
 
 
+def caption_font_size(text):
+    """Shrink long uppercase captions so their text and box stay inside the 1080px frame."""
+    length = max(len(str(text or "")), 1)
+    estimated_width_per_character = 0.82
+    available_width = 960  # leaves room for the text border and box padding
+    return max(24, min(76, int(available_width / (estimated_width_per_character * length))))
+
+
 def make_clip(i, scene, hero, seed, style):
     img, aud, clip = OUT / f"s{i}.jpg", OUT / f"s{i}.mp3", OUT / f"s{i}.mp4"
     prompt = f"{scene['image_prompt']}. Composition: {SHOT_COMPOSITIONS[i % len(SHOT_COMPOSITIONS)]}. Visual anchor: {hero}. {style}"
@@ -172,7 +180,7 @@ def make_clip(i, scene, hero, seed, style):
         cf = OUT / f"c{i}_{k}.txt"
         cf.write_text(txt.upper())
         color = "white"
-        vf += (f",drawtext=fontfile={FONT}:textfile={cf}:fontcolor={color}:fontsize=76:box=1:boxcolor=black@0.32:boxborderw=18:shadowcolor=black:shadowx=2:shadowy=2:"
+        vf += (f",drawtext=fontfile={FONT}:textfile={cf}:fontcolor={color}:fontsize={caption_font_size(txt)}:box=1:boxcolor=black@0.32:boxborderw=18:shadowcolor=black:shadowx=2:shadowy=2:"
                f"borderw=9:bordercolor=black:x=(w-text_w)/2:y=h*0.68:"
                f"enable='between(t,{s:.2f},{e:.2f})'")
     subprocess.run(
