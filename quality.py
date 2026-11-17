@@ -28,10 +28,10 @@ def check(data, history=None):
 
     story = str(data.get("full_story", "")).strip() if isinstance(data, dict) else ""
     story_count = len(words(story))
-    if story_count < 100:
-        issues.append(f"Full story is too short ({story_count} words; minimum 100).")
-    elif story_count > 220:
-        issues.append(f"Full story is too long ({story_count} words; maximum 220).")
+    if story_count < 140:
+        issues.append(f"Full story is too short ({story_count} words; minimum 140).")
+    elif story_count > 180:
+        issues.append(f"Full story is too long ({story_count} words; maximum 180).")
 
     if not isinstance(scenes, list) or len(scenes) != 10:
         issues.append("Exactly 10 scenes are required.")
