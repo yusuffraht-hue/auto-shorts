@@ -53,7 +53,7 @@ def write_script(hist):
                 return data
             print("story quality gate rejected draft:", report["issues"])
             feedback = (
-                "\\n\\nQUALITY REPAIR: Your previous draft failed these checks: "
+                "\n\nQUALITY REPAIR: Your previous draft failed these checks: "
                 + "; ".join(report["issues"])
                 + ". Rewrite the entire JSON story. Follow every scene and story length rule exactly. "
                 "Do not add unsupported canon facts. Return only corrected JSON."
