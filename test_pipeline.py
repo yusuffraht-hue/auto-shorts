@@ -155,6 +155,9 @@ class SeriesTests(unittest.TestCase):
             meta = series.build("anime", hist)
         self.assertIn(series.RECAP_RULES, meta["prompt"])
         self.assertIn("Verified background facts:", meta["prompt"])
+        self.assertIn("do not assume the notes describe opening events", meta["prompt"])
+        self.assertIn("10 distinct scenes", meta["prompt"])
+        self.assertNotIn("Part 1 covers the premise and opening events", meta["prompt"])
         self.assertIn('"skip":true', meta["prompt"])
 
 
