@@ -35,6 +35,15 @@ class QualityGateTests(unittest.TestCase):
         self.assertFalse(report["passed"])
         self.assertTrue(any("too short" in issue for issue in report["issues"]))
 
+    def test_quality_gate_enforces_prompt_word_count_range(self):
+        for count, expected in ((139, "too short"), (181, "too long")):
+            with self.subTest(count=count):
+                data = self.valid_story()
+                data["full_story"] = "word " * count
+                report = quality.check(data, {"episodes": []})
+                self.assertFalse(report["passed"])
+                self.assertTrue(any(expected in issue for issue in report["issues"]))
+
     def test_quality_gate_rejects_repeated_scene_lines(self):
         data = self.valid_story()
         data["scenes"][1]["line"] = data["scenes"][0]["line"]
