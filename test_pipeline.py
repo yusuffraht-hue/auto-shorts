@@ -128,6 +128,15 @@ class SeriesTests(unittest.TestCase):
         self.assertEqual([c[2] for c in caps], ["The door opened", "by itself again"])
         self.assertAlmostEqual(caps[0][1], caps[1][0])
 
+    def test_caption_font_size_shrinks_long_chunks(self):
+        self.assertEqual(generate.caption_font_size("LUMEN"), 76)
+        self.assertLess(generate.caption_font_size("DREAMGATE'S BROKEN KEY"), 60)
+        self.assertGreaterEqual(generate.caption_font_size("DREAMGATE'S BROKEN KEY"), 24)
+
+    def test_caption_font_size_has_a_lower_bound_for_extreme_tokens(self):
+        self.assertEqual(generate.caption_font_size("W" * 100), 24)
+
+
     def test_auto_anime_selection_uses_only_verified_works(self):
         hist = {"episodes": [], "works": {}, "log": {}}
         with patch.dict(os.environ, {"WORK": "auto", "FORMAT": "recap"}):
