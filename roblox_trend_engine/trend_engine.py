@@ -5,6 +5,8 @@ import argparse
 import json
 import os
 import time
+import urllib.error
+import uuid
 import urllib.parse
 import urllib.request
 from collections import Counter
@@ -28,10 +30,25 @@ def load_config():
     config["max_results_per_term"] = int(os.getenv("ROBLOX_MAX_RESULTS", config["max_results_per_term"]))
     return config
 
-def fetch_json(url: str, timeout: int = 15) -> dict[str, Any]:
+SESSION_ID = str(uuid.uuid4())  # Roblox search throttles requests that send an empty session id
+
+
+def fetch_json(url: str, timeout: int = 20) -> dict[str, Any]:
+    """GET JSON, backing off and retrying when Roblox answers 429 or a transient 5xx."""
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"})
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        return json.loads(response.read().decode("utf-8"))
+    last: Exception | None = None
+    for attempt in range(4):
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            last = exc
+            if exc.code not in (429, 500, 502, 503, 504):
+                raise
+        except (urllib.error.URLError, TimeoutError) as exc:
+            last = exc
+        time.sleep(5 * (attempt + 1))
+    raise last if last else RuntimeError("fetch failed")
 
 def walk_dicts(value):
     if isinstance(value, dict):
@@ -68,7 +85,7 @@ def extract_search_games(payload):
     return list(found.values())
 
 def search_term(term, limit):
-    params = urllib.parse.urlencode({"searchQuery": term, "pageType": "games", "sessionId": "", "pageToken": ""})
+    params = urllib.parse.urlencode({"searchQuery": term, "pageType": "all", "sessionId": SESSION_ID})
     payload = fetch_json("https://apis.roblox.com/search-api/omni-search?" + params)
     games = extract_search_games(payload)[:limit]
     for rank, game in enumerate(games, start=1):
@@ -192,7 +209,7 @@ def main():
                 else:
                     by_id[uid]["matched_terms"].append(term)
                     by_id[uid]["appearances"] += 1
-            time.sleep(0.5)
+            time.sleep(13)  # the free search endpoint throttles per IP
         except Exception as exc:
             warnings.append(f"{term}: {type(exc).__name__}: {str(exc)[:240]}")
     games = list(by_id.values())[:int(config["max_universes_to_enrich"])]
