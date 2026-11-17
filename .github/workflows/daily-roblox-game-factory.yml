@@ -4,6 +4,10 @@ on:
   schedule:
     - cron: "30 16 * * *"
   workflow_dispatch:
+  pull_request:
+    paths:
+      - "roblox_game_factory/**"
+      - ".github/workflows/daily-roblox-game-factory.yml"
 
 permissions:
   contents: read
@@ -45,6 +49,7 @@ jobs:
           (cd "$dir" && "$GITHUB_WORKSPACE/rojo" build -o game.rbxl)
           echo "PLACE_FILE=${dir}game.rbxl" >> "$GITHUB_ENV"
       - name: Save to Roblox (only if configured; goes live only if ROBLOX_PUBLISH=1)
+        if: github.event_name != 'pull_request'
         env:
           ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
           ROBLOX_UNIVERSE_ID: ${{ secrets.ROBLOX_UNIVERSE_ID }}
