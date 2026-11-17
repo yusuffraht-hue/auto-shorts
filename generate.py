@@ -7,6 +7,7 @@ import edge_tts
 import requests
 from llm import call_llm
 import series
+import quality
 
 OUT = pathlib.Path("out")
 OUT.mkdir(exist_ok=True)
@@ -32,20 +33,34 @@ SHOT_COMPOSITIONS = (
 
 
 def write_script(hist):
-    """Ask the LLM for the story; if it says it does not know the work, pick another."""
+    """Generate, quality-check and repair a story before recording it in history."""
     avoid = set()
     for _ in range(5):
         meta = series.build(SERIES, hist, avoid)
-        data = json.loads(call_llm(meta["prompt"]))
-        if data.get("skip"):
-            print("LLM skipped", meta.get("work"), "- trying another")
+        feedback = ""
+        for attempt in range(2):
+            data = json.loads(call_llm(meta["prompt"] + feedback))
+            if data.get("skip"):
+                print("LLM skipped", meta.get("work"), "- trying another")
+                avoid.add(meta.get("work"))
+                break
+            report = quality.check(data, hist)
+            if report["passed"]:
+                data = series.finish(meta, data, hist)
+                data["quality_report"] = report
+                data["style"], data["voice"] = meta["style"], meta["voice"]
+                data["hero"] = data.get("hero") or meta["hero_default"]
+                return data
+            print("story quality gate rejected draft:", report["issues"])
+            feedback = (
+                "\\n\\nQUALITY REPAIR: Your previous draft failed these checks: "
+                + "; ".join(report["issues"])
+                + ". Rewrite the entire JSON story. Follow every scene and story length rule exactly. "
+                "Do not add unsupported canon facts. Return only corrected JSON."
+            )
+        else:
             avoid.add(meta.get("work"))
-            continue
-        data = series.finish(meta, data, hist)
-        data["style"], data["voice"] = meta["style"], meta["voice"]
-        data["hero"] = data.get("hero") or meta["hero_default"]
-        return data
-    raise RuntimeError("could not get a usable story")
+    raise RuntimeError("could not generate a story that passed the quality gate")
 
 
 def get_image(prompt, path, seed):
@@ -217,16 +232,11 @@ def upload_youtube(path, data):
         "status": {"privacyStatus": PRIVACY, "selfDeclaredMadeForKids": False},
     }
     body["status"]["containsSyntheticMedia"] = True  # honest AI-content disclosure
-    try:
-        res = yt.videos().insert(
-            part="snippet,status", body=body,
-            media_body=MediaFileUpload(str(path), mimetype="video/mp4", resumable=True)).execute()
-    except Exception as e:
-        print("upload retry without synthetic-media flag:", repr(e)[:150])
-        body["status"].pop("containsSyntheticMedia", None)
-        res = yt.videos().insert(
-            part="snippet,status", body=body,
-            media_body=MediaFileUpload(str(path), mimetype="video/mp4", resumable=True)).execute()
+    # Never silently remove the synthetic-media disclosure on upload errors.
+    # Fail closed so the owner can inspect and correct the API error safely.
+    res = yt.videos().insert(
+        part="snippet,status", body=body,
+        media_body=MediaFileUpload(str(path), mimetype="video/mp4", resumable=True)).execute()
     print("uploaded:", f"https://www.youtube.com/watch?v={res['id']}", PRIVACY)
 
 
@@ -236,6 +246,7 @@ if __name__ == "__main__":
     if not os.environ.get("VOICE"):
         VOICE = data["voice"]
     print(json.dumps({k: v for k, v in data.items() if k != "full_story"}, indent=2))
+    (OUT / "quality-report.json").write_text(json.dumps(data["quality_report"], indent=2))
     (OUT / "story.txt").write_text(data["title"] + "\n\n" + data["full_story"] + "\n\n"
                                    + " ".join("#" + t.replace(" ", "") for t in data["tags"]))
     blender_stills(data)
