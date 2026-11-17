@@ -69,7 +69,7 @@ WORKS = {
 
 
 RECAP_RULES = """RECAP ACCURACY AND ORIGINALITY:
-The background note is the complete approved canon fact sheet for this episode. Treat only facts explicitly stated in it as canon. Do not invent or infer specific events, locations, rules, objects, powers, characters, relationships, motives, outcomes, or chronology. Do not turn a setting detail into a rule. Do not invent a twist to fill the scene template. If these notes cannot support a coherent recap without padding or invented facts, return only {"skip":true}. Add one concise original analytical observation about the stated facts, clearly framed as commentary rather than canon; do not merely retell events. Never quote the source work.
+The background note is the complete approved canon fact sheet for this episode, not permission to use outside memory. Treat only facts explicitly stated in it as canon. Do not invent or infer specific events, locations, rules, objects, powers, characters, relationships, motives, outcomes, or chronology. Do not assume the notes describe opening events or a chapter-by-chapter sequence. Do not turn a setting detail into a rule. Do not invent a twist to fill the scene template. If the notes do not support 10 distinct scenes and a coherent 140-180 word recap without padding or invented facts, return only {"skip":true}. Add one concise original analytical observation about the stated facts, clearly framed as commentary rather than canon; do not merely retell events. Never quote the source work.
 """
 
 def _fill(spec, hero, image):
@@ -116,7 +116,6 @@ def build_anime(hist, avoid=()):
     if kind == "recap":
         prev = [x["summary"] for x in hist["log"].get(work, [])[-3:]]
         brief = (f"Unofficial recap Part {n} of {work}. Verified background facts: {hint}. "
-                 f"Part 1 covers the premise and opening events; later parts continue chronologically. "
                  f"Previously covered: {prev}. {sure}\n{RECAP_RULES}")
     else:
         brief = (f"Create an ORIGINAL fan what-if inspired by {work}. Background: {hint}. Clearly label it "
