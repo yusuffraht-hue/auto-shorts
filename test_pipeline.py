@@ -143,6 +143,17 @@ class SeriesTests(unittest.TestCase):
             meta = series.build("anime", hist)
         self.assertTrue(series.WORKS[meta["work"]][1])
 
+    def test_what_if_title_does_not_repeat_series_label(self):
+        self.assertEqual(
+            series.clean_what_if_title("What If the Cursed Mirror Fell?"),
+            "The Cursed Mirror Fell?",
+        )
+        self.assertEqual(
+            series.clean_what_if_title("Dreamgate's Shadow: A Nightmarish WhatIf"),
+            "Dreamgate's Shadow: A Nightmarish",
+        )
+
+
     def test_unverified_manual_work_is_blocked(self):
         hist = {"episodes": [], "works": {}, "log": {}}
         with patch.dict(os.environ, {"WORK": "The Artist Who Paints Dungeons", "FORMAT": "recap"}):
