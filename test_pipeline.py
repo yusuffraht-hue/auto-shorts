@@ -15,7 +15,7 @@ class QualityGateTests(unittest.TestCase):
     def valid_story(self):
         return {
             "title": "The Door Beneath the City",
-            "full_story": " ".join(["A mysterious door appeared beneath the city overnight."] * 25),
+            "full_story": " ".join(["A mysterious door appeared beneath the city overnight."] * 20),
             "scenes": [
                 {"line": f"The strange door opened for scene {i}.",
                  "image_prompt": f"underground stone doorway glowing softly scene number {i} wide cinematic view"}
