@@ -7,6 +7,44 @@ import generate
 import llm
 import series
 import shots
+import quality
+
+
+
+class QualityGateTests(unittest.TestCase):
+    def valid_story(self):
+        return {
+            "title": "The Door Beneath the City",
+            "full_story": " ".join(["A mysterious door appeared beneath the city overnight."] * 25),
+            "scenes": [
+                {"line": f"The strange door opened for scene {i}.",
+                 "image_prompt": f"underground stone doorway glowing softly scene number {i} wide cinematic view"}
+                for i in range(1, 11)
+            ],
+        }
+
+    def test_quality_gate_accepts_complete_distinct_story(self):
+        report = quality.check(self.valid_story(), {"episodes": []})
+        self.assertTrue(report["passed"], report["issues"])
+        self.assertEqual(report["scene_count"], 10)
+
+    def test_quality_gate_rejects_short_story(self):
+        data = self.valid_story()
+        data["full_story"] = "A door appeared."
+        report = quality.check(data, {"episodes": []})
+        self.assertFalse(report["passed"])
+        self.assertTrue(any("too short" in issue for issue in report["issues"]))
+
+    def test_quality_gate_rejects_repeated_scene_lines(self):
+        data = self.valid_story()
+        data["scenes"][1]["line"] = data["scenes"][0]["line"]
+        report = quality.check(data, {"episodes": []})
+        self.assertTrue(any("repeats earlier narration" in issue for issue in report["issues"]))
+
+    def test_quality_gate_rejects_recent_duplicate_title(self):
+        data = self.valid_story()
+        report = quality.check(data, {"episodes": [{"title": data["title"]}]})
+        self.assertTrue(any("duplicates" in issue for issue in report["issues"]))
 
 
 class LLMValidationTests(unittest.TestCase):
