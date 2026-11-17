@@ -1,5 +1,5 @@
 """Two story series: prompts, visual styles, voices and episode history."""
-import json, os, pathlib, random
+import json, os, pathlib, random, re
 
 HIST_DIR = pathlib.Path("history")
 
@@ -137,13 +137,22 @@ def build(name, hist, avoid=()):
     return build_anime(hist, avoid) if name == "anime" else build_town(hist)
 
 
+def clean_what_if_title(title):
+    """Remove a repeated 'What If' label because the series prefix already supplies it."""
+    cleaned = re.sub(r"^\s*what[\s-]*if\s*[:—-]?\s*", "", str(title or ""), flags=re.IGNORECASE)
+    cleaned = re.sub(r"\s+what[\s-]*if\s*$", "", cleaned, flags=re.IGNORECASE)
+    return cleaned.strip(" \t:—-") or "An Alternate Path"
+
+
 def finish(meta, data, hist):
     intro = data.get("description", "").strip()
     t = data.get("title", "Untitled").strip()
     if meta["series"] == "anime":
         w = meta["work"]
-        data["title"] = (f"{w} Recap #{meta['n']}: {t}" if meta["kind"] == "recap"
-                         else f"{w} What If: {t}")
+        if meta["kind"] == "recap":
+            data["title"] = f"{w} Recap #{meta['n']}: {t}"
+        else:
+            data["title"] = f"{w} What If: {clean_what_if_title(t)}"
     data["tags"] = list(dict.fromkeys(meta["tags"] + data.get("tags", [])))[:15]
     story = (data.get("full_story") or " ".join(s["line"] for s in data["scenes"])).strip()
     story = story.replace("<", "").replace(">", "")
