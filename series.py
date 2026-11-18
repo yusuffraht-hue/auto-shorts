@@ -1,6 +1,8 @@
 """Two story series: prompts, visual styles, voices and episode history."""
 import json, os, pathlib, random, re
 
+import humanize
+
 HIST_DIR = pathlib.Path("history")
 
 
@@ -39,9 +41,11 @@ Scene 10 must end by telling viewers the full story is in the caption.
 10 END: finish on a specific cliffhanger or question, then say exactly: "Full story in caption."
 Spoken narration only. No stage directions, generic filler, fake facts, or repetitive phrases. Proofread the story for grammar, spelling, continuity, and complete words before returning it. Keep the story easy to follow on first listen and family-friendly.
 Never copy dialogue or prose from an existing work."""
+VIDEO_RULES = VIDEO_RULES + "\n" + humanize.STYLE_RULES
+
 
 SPEC = """Return ONLY this JSON structure:
-{"title":"curiosity-driven title under 55 chars","description":"2 short sentences",
+{"title":"curiosity-driven title under 55 chars (never include the work name or the words recap / what if)","description":"2 short sentences",
  "tags":["..."],"hero":"HERO_RULE","full_story":"140-180 words, paragraphs separated by blank lines",
  "scenes":[{"line":"short narration","image_prompt":"IMAGE_RULE"}]}
 Exactly 10 scene objects. No markdown fences."""
@@ -67,6 +71,11 @@ WORKS = {
     "The Artist Who Paints Dungeons": ("A fantasy story centered on an artist and dungeon-related paintings.", False),
 }
 
+
+RECAP_FACT_SHEETS = {
+    # Add only episode/chapter-scoped facts checked against reliable sources.
+    # A general series synopsis is not enough to authorize a recap.
+}
 
 RECAP_RULES = """RECAP ACCURACY AND ORIGINALITY:
 The background note is the complete approved canon fact sheet for this episode, not permission to use outside memory. Treat only facts explicitly stated in it as canon. Do not invent or infer specific events, locations, rules, objects, powers, characters, relationships, motives, outcomes, or chronology. Do not assume the notes describe opening events or a chapter-by-chapter sequence. Do not turn a setting detail into a rule. Do not invent a twist to fill the scene template. If the notes do not support 10 distinct scenes and a coherent 140-180 word recap without padding or invented facts, return only {"skip":true}. Add one concise original analytical observation about the stated facts, clearly framed as commentary rather than canon; do not merely retell events. Never quote the source work.
@@ -108,6 +117,14 @@ def build_anime(hist, avoid=()):
     if not known:
         raise RuntimeError(f"No reliable plot notes configured for {work}; refusing to invent a recap")
     kind = fmt if fmt in ("recap", "whatif") else ("recap" if len(hist["episodes"]) % 2 == 0 else "whatif")
+    episode_facts = RECAP_FACT_SHEETS.get(work)
+    if kind == "recap" and not episode_facts:
+        if fmt == "recap":
+            raise RuntimeError(
+                f"No episode-specific verified fact sheet configured for {work}; refusing to invent a recap"
+            )
+        # Scheduled auto mode stays productive without presenting an unsupported recap as canon.
+        kind = "whatif"
     n = hist["works"].get(work, 0) + 1
     visuals = ("Use symbolic atmospheric images only: silhouettes, hands, objects, landscapes, "
                "crowds from behind. No recognizable characters, faces, character names or logos in images.")
@@ -115,7 +132,7 @@ def build_anime(hist, avoid=()):
     sure = ("Use only plot details you are confident are real. If unsure, return only {\"skip\":true}.")
     if kind == "recap":
         prev = [x["summary"] for x in hist["log"].get(work, [])[-3:]]
-        brief = (f"Unofficial recap Part {n} of {work}. Verified background facts: {hint}. "
+        brief = (f"Unofficial recap Part {n} of {work}. Verified episode-specific canon facts: {episode_facts}. "
                  f"Previously covered: {prev}. {sure}\n{RECAP_RULES}")
     else:
         brief = (f"Create an ORIGINAL fan what-if inspired by {work}. Background: {hint}. Clearly label it "
@@ -137,23 +154,24 @@ def build(name, hist, avoid=()):
     return build_anime(hist, avoid) if name == "anime" else build_town(hist)
 
 
-def clean_what_if_title(title):
-    """Remove a repeated 'What If' label because the series prefix already supplies it."""
-    cleaned = re.sub(r"^\s*what[\s-]*if\s*[:—-]?\s*", "", str(title or ""), flags=re.IGNORECASE)
-    cleaned = re.sub(r"\s+what[\s-]*if\s*$", "", cleaned, flags=re.IGNORECASE)
-    cleaned = cleaned.strip(" \t:—-")
-    return (cleaned[0].upper() + cleaned[1:]) if cleaned else "An Alternate Path"
+def _clean_title(title, work):
+    """Drop the work name and 'recap' / 'what if' that the story writer sometimes repeats in the title."""
+    t = re.sub(re.escape(work), "", title, flags=re.I)
+    t = re.sub(r"(?i)\b(what[\s-]?if|recap)\b", "", t)
+    t = re.sub(r"\s*[:|\-]\s*(?=[:|\-])", "", t)
+    t = re.sub(r"\s+", " ", t).strip(" :|-")
+    return t or "Untitled"
 
 
 def finish(meta, data, hist):
+    humanize.polish(data)
     intro = data.get("description", "").strip()
     t = data.get("title", "Untitled").strip()
     if meta["series"] == "anime":
         w = meta["work"]
-        if meta["kind"] == "recap":
-            data["title"] = f"{w} Recap #{meta['n']}: {t}"
-        else:
-            data["title"] = f"{w} What If: {clean_what_if_title(t)}"
+        t = _clean_title(t, w)
+        data["title"] = (f"{w} Recap #{meta['n']}: {t}" if meta["kind"] == "recap"
+                         else f"{w} What If: {t}")
     data["tags"] = list(dict.fromkeys(meta["tags"] + data.get("tags", [])))[:15]
     story = (data.get("full_story") or " ".join(s["line"] for s in data["scenes"])).strip()
     story = story.replace("<", "").replace(">", "")
