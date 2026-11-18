@@ -30,7 +30,7 @@ Keep videos private while reviewing them. Do not change the `PRIVACY` repository
 
 ## Free-first providers
 
-Story generation tries available providers in this order: Gemini, Groq, GitHub Models, then Pollinations text. Provider access, rate limits and free-tier terms can change. Image generation uses Pollinations when a scene does not have a Blender still. Narration uses Edge TTS with a series-specific voice and fallback voices.
+Story generation tries available providers in this order: Gemini, Groq, GitHub Models, then Pollinations text. Provider access, rate limits and free-tier terms can change. Image generation uses Pollinations when a scene does not have a Blender still. Narration uses Edge TTS with a series-specific voice and fallback voices. If `VOICESTUDIO_URL` is configured, the pipeline tries VoiceStudio first and visibly falls back to Edge TTS if it is unavailable.
 
 No paid API or subscription is required by the repository's default design, but free services can be rate-limited, unavailable or changed without notice.
 
@@ -46,6 +46,14 @@ Optional story-provider secrets:
 
 - `GEMINI_API_KEY`
 - `GROQ_API_KEY`
+
+Optional VoiceStudio connection (leave unset to keep the existing free Edge TTS path):
+
+- `VOICESTUDIO_URL` — reachable VoiceStudio service root, for example `https://your-private-host`
+- `VOICESTUDIO_API_KEY` — optional bearer key if the backend requires authentication
+- Repository variables `VOICESTUDIO_MODEL` (default `tts-1`) and `VOICESTUDIO_VOICE` (default `default`)
+
+VoiceStudio must already be running somewhere reachable by GitHub Actions. This repository does not host it or provide a free GPU server. Its speech endpoint returns audio but not word timings, so captions use estimated word timing for VoiceStudio clips. Do not expose a private backend to the public internet; use a secure HTTPS tunnel or private network arrangement.
 
 The GitHub Actions token is supplied to the workflow for GitHub Models access. Never commit API keys, OAuth tokens or passwords to the repository.
 
