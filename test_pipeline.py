@@ -161,3 +161,36 @@ class SeriesTests(unittest.TestCase):
             series._clean_title("Jujutsu Kaisen Recap: Dreamgate's Shadow", "Jujutsu Kaisen"),
             "Dreamgate's Shadow",
         )
+
+    def test_unverified_manual_work_is_blocked(self):
+        hist = {"episodes": [], "works": {}, "log": {}}
+        with patch.dict(os.environ, {"WORK": "The Artist Who Paints Dungeons", "FORMAT": "recap"}):
+            with self.assertRaises(RuntimeError):
+                series.build("anime", hist)
+
+    def test_auto_mode_falls_back_to_labeled_what_if_without_episode_facts(self):
+        hist = {"episodes": [], "works": {}, "log": {}}
+        with patch.dict(os.environ, {"WORK": "Jujutsu Kaisen", "FORMAT": "auto"}):
+            meta = series.build("anime", hist)
+        self.assertEqual(meta["kind"], "whatif")
+        self.assertIn("Clearly label it as speculation, not canon", meta["prompt"])
+        self.assertIn("what-if speculation", meta["note"])
+
+    def test_explicit_recap_fails_closed_without_episode_specific_facts(self):
+        hist = {"episodes": [], "works": {}, "log": {}}
+        with patch.dict(os.environ, {"WORK": "Jujutsu Kaisen", "FORMAT": "recap"}):
+            with self.assertRaisesRegex(RuntimeError, "episode-specific verified fact sheet"):
+                series.build("anime", hist)
+
+    def test_episode_fact_sheet_enables_recap_with_strict_prompt(self):
+        hist = {"episodes": [], "works": {}, "log": {}}
+        with patch.dict(series.RECAP_FACT_SHEETS, {
+            "Jujutsu Kaisen": "Yuji swallows Sukuna's finger; Gojo explains the execution choice."
+        }):
+            with patch.dict(os.environ, {"WORK": "Jujutsu Kaisen", "FORMAT": "recap"}):
+                meta = series.build("anime", hist)
+        self.assertEqual(meta["kind"], "recap")
+        self.assertIn("Verified episode-specific canon facts:", meta["prompt"])
+        self.assertIn(series.RECAP_RULES, meta["prompt"])
+        self.assertNotIn("Part 1 covers the premise and opening events", meta["prompt"])
+        self.assertIn('{"skip":true}', meta["prompt"])
