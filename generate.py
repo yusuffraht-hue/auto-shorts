@@ -7,6 +7,7 @@ import edge_tts
 import requests
 from llm import call_llm
 import series
+import voice_studio
 
 OUT = pathlib.Path("out")
 OUT.mkdir(exist_ok=True)
@@ -77,7 +78,15 @@ def get_image(prompt, path, seed):
 
 
 async def tts_words(text, path):
-    """Speech + [(start, end, word)] timings. Retries, backup voices, then Google TTS as a last resort."""
+    """Prefer configured VoiceStudio; fall back visibly to Edge TTS and then Google TTS."""
+    if voice_studio.configured():
+        try:
+            voice_studio.synthesize(text, path)
+            print("tts: generated with VoiceStudio (word timings unavailable; using estimated captions)")
+            return []
+        except Exception as e:
+            print("VoiceStudio TTS failed; falling back to Edge TTS:", repr(e)[:200])
+
     voices = [VOICE, "en-US-AndrewNeural", "en-US-GuyNeural", "en-US-AriaNeural"]
     for attempt, voice in enumerate(voices * 2):
         words = []
@@ -102,7 +111,6 @@ async def tts_words(text, path):
     from gtts import gTTS
     gTTS(text, lang="en").save(str(path))
     return []
-
 
 def duration(path):
     out = subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration",
