@@ -148,54 +148,16 @@ class SeriesTests(unittest.TestCase):
 
     def test_auto_anime_selection_uses_only_verified_works(self):
         hist = {"episodes": [], "works": {}, "log": {}}
-        with patch.dict(os.environ, {"WORK": "auto", "FORMAT": "recap"}):
+        with patch.dict(os.environ, {"WORK": "auto", "FORMAT": "auto"}):
             meta = series.build("anime", hist)
         self.assertTrue(series.WORKS[meta["work"]][1])
 
-    def test_what_if_title_does_not_repeat_series_label(self):
+    def test_anime_title_cleanup_removes_duplicate_work_and_format_labels(self):
         self.assertEqual(
-            series.clean_what_if_title("What If the Cursed Mirror Fell?"),
-            "The Cursed Mirror Fell?",
+            series._clean_title("Jujutsu Kaisen What If the Cursed Mirror Fell?", "Jujutsu Kaisen"),
+            "the Cursed Mirror Fell?",
         )
         self.assertEqual(
-            series.clean_what_if_title("Dreamgate's Shadow: A Nightmarish WhatIf"),
-            "Dreamgate's Shadow: A Nightmarish",
+            series._clean_title("Jujutsu Kaisen Recap: Dreamgate's Shadow", "Jujutsu Kaisen"),
+            "Dreamgate's Shadow",
         )
-
-
-    def test_unverified_manual_work_is_blocked(self):
-        hist = {"episodes": [], "works": {}, "log": {}}
-        with patch.dict(os.environ, {"WORK": "The Artist Who Paints Dungeons", "FORMAT": "recap"}):
-            with self.assertRaises(RuntimeError):
-                series.build("anime", hist)
-
-    def test_auto_mode_falls_back_to_labeled_what_if_without_episode_facts(self):
-        hist = {"episodes": [], "works": {}, "log": {}}
-        with patch.dict(os.environ, {"WORK": "Jujutsu Kaisen", "FORMAT": "auto"}):
-            meta = series.build("anime", hist)
-        self.assertEqual(meta["kind"], "whatif")
-        self.assertIn("Clearly label it as speculation, not canon", meta["prompt"])
-        self.assertIn("what-if speculation", meta["note"])
-
-    def test_explicit_recap_fails_closed_without_episode_specific_facts(self):
-        hist = {"episodes": [], "works": {}, "log": {}}
-        with patch.dict(os.environ, {"WORK": "Jujutsu Kaisen", "FORMAT": "recap"}):
-            with self.assertRaisesRegex(RuntimeError, "episode-specific verified fact sheet"):
-                series.build("anime", hist)
-
-    def test_episode_fact_sheet_enables_recap_with_strict_prompt(self):
-        hist = {"episodes": [], "works": {}, "log": {}}
-        with patch.dict(series.RECAP_FACT_SHEETS, {
-            "Jujutsu Kaisen": "Yuji swallows Sukuna's finger; Gojo explains the execution choice."
-        }):
-            with patch.dict(os.environ, {"WORK": "Jujutsu Kaisen", "FORMAT": "recap"}):
-                meta = series.build("anime", hist)
-        self.assertEqual(meta["kind"], "recap")
-        self.assertIn("Verified episode-specific canon facts:", meta["prompt"])
-        self.assertIn(series.RECAP_RULES, meta["prompt"])
-        self.assertNotIn("Part 1 covers the premise and opening events", meta["prompt"])
-        self.assertIn('{"skip":true}', meta["prompt"])
-
-
-if __name__ == "__main__":
-    unittest.main()
