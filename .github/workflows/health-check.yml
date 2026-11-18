@@ -1,0 +1,29 @@
+name: health-check
+
+on:
+  schedule:
+    - cron: "30 18 * * *"   # daily, after both series have run
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write     # lets it retry a failed run
+  issues: write      # lets it open an alert issue (GitHub emails you)
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check both series and the YouTube login
+        run: python health_check.py
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
