@@ -74,6 +74,9 @@ def synthesize(text, path, env=None, session=requests):
     }
     headers = {"Content-Type": "application/json"}
     api_key = env.get("VOICESTUDIO_API_KEY", "").strip()
+    host = urlsplit(base_url).hostname
+    if not _is_loopback_host(host) and not api_key:
+        raise ValueError("Remote VoiceStudio endpoints require VOICESTUDIO_API_KEY")
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
 

@@ -47,6 +47,15 @@ class VoiceStudioTests(unittest.TestCase):
             )
         session.post.assert_not_called()
 
+    def test_remote_https_requires_api_key(self):
+        session = Mock()
+        with self.assertRaisesRegex(ValueError, "require VOICESTUDIO_API_KEY"):
+            voice_studio.synthesize(
+                "Hello", "/tmp/not-written.mp3",
+                {"VOICESTUDIO_URL": "https://voice.example"}, session
+            )
+        session.post.assert_not_called()
+
     def test_rejects_non_audio_content_type_even_when_response_is_large(self):
         response = Mock()
         response.content = b"ID3" + b"x" * 1197
