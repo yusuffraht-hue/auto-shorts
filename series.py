@@ -179,6 +179,11 @@ def finish(meta, data, hist):
     data["description"] = (intro + "\n\nFULL STORY:\n" + story
                            + "\n\n" + meta["note"])[:4700]
     hist["episodes"].append({"title": data["title"], "kind": meta["kind"], "work": meta.get("work")})
+    recent_stories = hist.get("recent_stories", [])
+    if not isinstance(recent_stories, list):
+        recent_stories = []
+    recent_stories.append(story)
+    hist["recent_stories"] = recent_stories[-8:]
     if meta["series"] == "anime" and meta["kind"] == "recap":
         hist["works"][meta["work"]] = meta["n"]
         hist["log"].setdefault(meta["work"], []).append({"n": meta["n"], "summary": intro[:300]})

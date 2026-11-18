@@ -55,6 +55,19 @@ class QualityGateTests(unittest.TestCase):
         report = quality.check(data, {"episodes": [{"title": data["title"]}]})
         self.assertTrue(any("duplicates" in issue for issue in report["issues"]))
 
+    def test_quality_gate_rejects_near_duplicate_story(self):
+        data = self.valid_story()
+        previous = data["full_story"].replace("door", "gate")
+        report = quality.check(data, {"recent_stories": [previous]})
+        self.assertTrue(any("too similar" in issue for issue in report["issues"]))
+        self.assertGreaterEqual(report["max_recent_story_similarity"], 0.72)
+
+    def test_quality_gate_allows_distinct_story(self):
+        data = self.valid_story()
+        previous = " ".join(["A young pilot crossed the ocean to deliver medicine to an isolated island."] * 20)
+        report = quality.check(data, {"recent_stories": [previous]})
+        self.assertFalse(any("too similar" in issue for issue in report["issues"]))
+
 
 class LLMValidationTests(unittest.TestCase):
     def make_payload(self, count=10):
@@ -151,6 +164,24 @@ class SeriesTests(unittest.TestCase):
         with patch.dict(os.environ, {"WORK": "auto", "FORMAT": "auto"}):
             meta = series.build("anime", hist)
         self.assertTrue(series.WORKS[meta["work"]][1])
+
+    def test_finish_keeps_only_eight_recent_story_texts(self):
+        hist = {
+            "episodes": [], "works": {}, "log": {},
+            "recent_stories": [f"old story {i}" for i in range(10)],
+        }
+        meta = series.build("town", hist)
+        data = {
+            "title": "A New Door",
+            "description": "A new mystery begins.",
+            "full_story": "A newly written story with a unique ending.",
+            "scenes": [],
+            "tags": [],
+        }
+        with patch("humanize.polish", lambda value: None):
+            series.finish(meta, data, hist)
+        self.assertEqual(len(hist["recent_stories"]), 8)
+        self.assertEqual(hist["recent_stories"][-1], data["full_story"])
 
     def test_anime_title_cleanup_removes_duplicate_work_and_format_labels(self):
         self.assertEqual(

@@ -4,6 +4,7 @@ These checks cannot prove factual accuracy or guarantee monetization. They catch
 common structural defects before expensive image/audio rendering begins.
 """
 import re
+from difflib import SequenceMatcher
 
 
 def words(text):
@@ -66,11 +67,32 @@ def check(data, history=None):
     if _normal(title) and _normal(title) in recent_titles:
         issues.append("Title duplicates one of the last eight episode titles.")
 
+    recent_stories = history.get("recent_stories", [])
+    max_story_similarity = 0.0
+    if isinstance(recent_stories, list) and story_count:
+        current_tokens = _normal(story).split()
+        for previous in recent_stories[-8:]:
+            if isinstance(previous, dict):
+                previous = previous.get("story") or previous.get("summary", "")
+            previous_tokens = _normal(previous).split()
+            if not previous_tokens:
+                continue
+            similarity = SequenceMatcher(
+                None, current_tokens, previous_tokens, autojunk=False
+            ).ratio()
+            max_story_similarity = max(max_story_similarity, similarity)
+            if similarity >= 0.72:
+                issues.append(
+                    f"Full story is too similar to a recent episode ({similarity:.0%} token-sequence similarity)."
+                )
+                break
+
     return {
         "passed": not issues,
         "score": max(0, 100 - 15 * len(issues)),
         "story_word_count": story_count,
         "scene_count": len(scenes),
+        "max_recent_story_similarity": round(max_story_similarity, 3),
         "issues": issues,
         "checks": [
             "title present",
@@ -80,8 +102,10 @@ def check(data, history=None):
             "8-16 image-prompt words per scene",
             "duplicate narration",
             "recent-title repetition",
+            "recent-story similarity heuristic",
         ],
         "limitations": [
+            "Story similarity is a heuristic; it does not prove originality or platform monetization eligibility.",
             "Automated checks do not verify canon facts, copyright clearance, visual quality, or audience retention.",
             "A human should review the rendered video before public release.",
         ],
