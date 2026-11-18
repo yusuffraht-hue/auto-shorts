@@ -222,6 +222,26 @@ def build_video(data):
     return final
 
 
+def _youtube_upload_body(data):
+    return {
+        "snippet": {
+            "title": data["title"][:90] + " #Shorts",
+            "description": data["description"] + "\n\nAI-generated visuals and voice. #Shorts",
+            "tags": data.get("tags", [])[:15], "categoryId": "24"},
+        "status": {"privacyStatus": PRIVACY, "selfDeclaredMadeForKids": False,
+                   "containsSyntheticMedia": True},
+    }
+
+
+def _execute_youtube_upload(yt, path, data, media_file_upload):
+    """Execute exactly one upload request with the disclosure field intact."""
+    body = _youtube_upload_body(data)
+    request = yt.videos().insert(
+        part="snippet,status", body=body,
+        media_body=media_file_upload(str(path), mimetype="video/mp4", resumable=True))
+    return request.execute()
+
+
 def upload_youtube(path, data):
     from google.oauth2.credentials import Credentials
     from googleapiclient.discovery import build
@@ -232,19 +252,8 @@ def upload_youtube(path, data):
         client_id=os.environ["YT_CLIENT_ID"], client_secret=os.environ["YT_CLIENT_SECRET"],
         scopes=["https://www.googleapis.com/auth/youtube.upload"])
     yt = build("youtube", "v3", credentials=creds)
-    body = {
-        "snippet": {
-            "title": data["title"][:90] + " #Shorts",
-            "description": data["description"] + "\n\nAI-generated visuals and voice. #Shorts",
-            "tags": data.get("tags", [])[:15], "categoryId": "24"},
-        "status": {"privacyStatus": PRIVACY, "selfDeclaredMadeForKids": False},
-    }
-    body["status"]["containsSyntheticMedia"] = True  # honest AI-content disclosure
-    # Never silently remove the synthetic-media disclosure on upload errors.
-    # Fail closed so the owner can inspect and correct the API error safely.
-    res = yt.videos().insert(
-        part="snippet,status", body=body,
-        media_body=MediaFileUpload(str(path), mimetype="video/mp4", resumable=True)).execute()
+    # Do not retry after dropping containsSyntheticMedia. Fail closed on API errors.
+    res = _execute_youtube_upload(yt, path, data, MediaFileUpload)
     print("uploaded:", f"https://www.youtube.com/watch?v={res['id']}", PRIVACY)
 
 

@@ -225,3 +225,43 @@ class SeriesTests(unittest.TestCase):
         self.assertIn(series.RECAP_RULES, meta["prompt"])
         self.assertNotIn("Part 1 covers the premise and opening events", meta["prompt"])
         self.assertIn('{"skip":true}', meta["prompt"])
+
+class UploadSafetyTests(unittest.TestCase):
+    def test_upload_failure_does_not_retry_or_remove_synthetic_disclosure(self):
+        class FakeRequest:
+            def __init__(self):
+                self.execute_calls = 0
+
+            def execute(self):
+                self.execute_calls += 1
+                raise RuntimeError("synthetic disclosure rejected")
+
+        class FakeVideos:
+            def __init__(self):
+                self.insert_calls = 0
+                self.body = None
+                self.request = FakeRequest()
+
+            def insert(self, **kwargs):
+                self.insert_calls += 1
+                self.body = kwargs["body"]
+                return self.request
+
+        class FakeYouTube:
+            def __init__(self):
+                self.resource = FakeVideos()
+
+            def videos(self):
+                return self.resource
+
+        fake = FakeYouTube()
+        data = {"title": "Test story", "description": "Original story.", "tags": ["test"]}
+        with self.assertRaisesRegex(RuntimeError, "synthetic disclosure rejected"):
+            generate._execute_youtube_upload(
+                fake, "video.mp4", data,
+                lambda path, **kwargs: {"path": path, **kwargs},
+            )
+        self.assertEqual(fake.resource.insert_calls, 1)
+        self.assertEqual(fake.resource.request.execute_calls, 1)
+        self.assertTrue(fake.resource.body["status"]["containsSyntheticMedia"])
+        self.assertEqual(fake.resource.body["status"]["privacyStatus"], "private")
