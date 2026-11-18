@@ -85,6 +85,7 @@ class VoiceStudioTests(unittest.TestCase):
     def test_rejects_small_response(self):
         response = Mock()
         response.content = b"tiny"
+        response.headers = {"Content-Type": "audio/mpeg"}
         response.raise_for_status.return_value = None
         session = Mock()
         session.post.return_value = response
