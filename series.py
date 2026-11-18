@@ -1,6 +1,8 @@
 """Two story series: prompts, visual styles, voices and episode history."""
 import json, os, pathlib, random, re
 
+import humanize
+
 HIST_DIR = pathlib.Path("history")
 
 
@@ -39,6 +41,8 @@ Scene 10 must end by telling viewers the full story is in the caption.
 10 END: finish on a specific cliffhanger or question, then say exactly: "Full story in caption."
 Spoken narration only. No stage directions, generic filler, fake facts, or repetitive phrases. Proofread the story for grammar, spelling, continuity, and complete words before returning it. Keep the story easy to follow on first listen and family-friendly.
 Never copy dialogue or prose from an existing work."""
+VIDEO_RULES = VIDEO_RULES + "\n" + humanize.STYLE_RULES
+
 
 SPEC = """Return ONLY this JSON structure:
 {"title":"curiosity-driven title under 55 chars (never include the work name or the words recap / what if)","description":"2 short sentences",
@@ -148,6 +152,7 @@ def _clean_title(title, work):
 
 
 def finish(meta, data, hist):
+    humanize.polish(data)
     intro = data.get("description", "").strip()
     t = data.get("title", "Untitled").strip()
     if meta["series"] == "anime":
