@@ -72,8 +72,13 @@ WORKS = {
 }
 
 
+RECAP_FACT_SHEETS = {
+    # Add only episode/chapter-scoped facts checked against reliable sources.
+    # A general series synopsis is not enough to authorize a recap.
+}
+
 RECAP_RULES = """RECAP ACCURACY AND ORIGINALITY:
-The background note is the complete approved canon fact sheet for this episode. Treat only facts explicitly stated in it as canon. Do not invent or infer specific events, locations, rules, objects, powers, characters, relationships, motives, outcomes, or chronology. Do not turn a setting detail into a rule. Do not invent a twist to fill the scene template. If these notes cannot support a coherent recap without padding or invented facts, return only {"skip":true}. Add one concise original analytical observation about the stated facts, clearly framed as commentary rather than canon; do not merely retell events. Never quote the source work.
+The background note is the complete approved canon fact sheet for this episode, not permission to use outside memory. Treat only facts explicitly stated in it as canon. Do not invent or infer specific events, locations, rules, objects, powers, characters, relationships, motives, outcomes, or chronology. Do not assume the notes describe opening events or a chapter-by-chapter sequence. Do not turn a setting detail into a rule. Do not invent a twist to fill the scene template. If the notes do not support 10 distinct scenes and a coherent 140-180 word recap without padding or invented facts, return only {"skip":true}. Add one concise original analytical observation about the stated facts, clearly framed as commentary rather than canon; do not merely retell events. Never quote the source work.
 """
 
 def _fill(spec, hero, image):
@@ -112,6 +117,14 @@ def build_anime(hist, avoid=()):
     if not known:
         raise RuntimeError(f"No reliable plot notes configured for {work}; refusing to invent a recap")
     kind = fmt if fmt in ("recap", "whatif") else ("recap" if len(hist["episodes"]) % 2 == 0 else "whatif")
+    episode_facts = RECAP_FACT_SHEETS.get(work)
+    if kind == "recap" and not episode_facts:
+        if fmt == "recap":
+            raise RuntimeError(
+                f"No episode-specific verified fact sheet configured for {work}; refusing to invent a recap"
+            )
+        # Scheduled auto mode stays productive without presenting an unsupported recap as canon.
+        kind = "whatif"
     n = hist["works"].get(work, 0) + 1
     visuals = ("Use symbolic atmospheric images only: silhouettes, hands, objects, landscapes, "
                "crowds from behind. No recognizable characters, faces, character names or logos in images.")
@@ -119,8 +132,7 @@ def build_anime(hist, avoid=()):
     sure = ("Use only plot details you are confident are real. If unsure, return only {\"skip\":true}.")
     if kind == "recap":
         prev = [x["summary"] for x in hist["log"].get(work, [])[-3:]]
-        brief = (f"Unofficial recap Part {n} of {work}. Verified background facts: {hint}. "
-                 f"Part 1 covers the premise and opening events; later parts continue chronologically. "
+        brief = (f"Unofficial recap Part {n} of {work}. Verified episode-specific canon facts: {episode_facts}. "
                  f"Previously covered: {prev}. {sure}\n{RECAP_RULES}")
     else:
         brief = (f"Create an ORIGINAL fan what-if inspired by {work}. Background: {hint}. Clearly label it "
@@ -167,6 +179,11 @@ def finish(meta, data, hist):
     data["description"] = (intro + "\n\nFULL STORY:\n" + story
                            + "\n\n" + meta["note"])[:4700]
     hist["episodes"].append({"title": data["title"], "kind": meta["kind"], "work": meta.get("work")})
+    recent_stories = hist.get("recent_stories", [])
+    if not isinstance(recent_stories, list):
+        recent_stories = []
+    recent_stories.append(story)
+    hist["recent_stories"] = recent_stories[-8:]
     if meta["series"] == "anime" and meta["kind"] == "recap":
         hist["works"][meta["work"]] = meta["n"]
         hist["log"].setdefault(meta["work"], []).append({"n": meta["n"], "summary": intro[:300]})

@@ -23,10 +23,10 @@ Keep videos private while reviewing them. Do not change the `PRIVACY` repository
 ## Story and originality safeguards
 
 - Town stories must be original and must not borrow characters or plots from existing media.
-- Anime/novel recaps may use only facts supported by the selected work's configured canon notes. If those notes are insufficient, the model is instructed to return a skip response rather than invent events.
+- Anime/novel recaps require an episode-specific fact sheet in `series.RECAP_FACT_SHEETS`; a general work synopsis is not enough. This map is intentionally empty until episode/chapter facts are checked against reliable sources. Scheduled `FORMAT=auto` falls back to clearly labeled fan what-if when no sheet exists; explicit `FORMAT=recap` fails closed.
 - What-if episodes must be clearly described as speculation, not canon.
 - Do not copy protected dialogue, prose, panels, logos or footage.
-- Each episode should have a distinct story and meaningful viewer value; high output volume or a repeated template alone is not a monetization strategy.
+- Each episode should have a distinct story and meaningful viewer value. Pre-render checks compare story text against the last eight episodes for near-duplicates; this heuristic cannot prove originality or monetization eligibility.
 
 ## Free-first providers
 

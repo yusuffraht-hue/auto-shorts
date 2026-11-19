@@ -53,6 +53,7 @@ jobs:
           path: |
             out/final.mp4
             out/story.txt
+            out/quality-report.json
           retention-days: 7
           if-no-files-found: ignore
       - name: Save episode history

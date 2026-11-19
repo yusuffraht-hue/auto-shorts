@@ -7,6 +7,7 @@ import edge_tts
 import requests
 from llm import call_llm
 import series
+import quality
 
 OUT = pathlib.Path("out")
 OUT.mkdir(exist_ok=True)
@@ -32,20 +33,34 @@ SHOT_COMPOSITIONS = (
 
 
 def write_script(hist):
-    """Ask the LLM for the story; if it says it does not know the work, pick another."""
+    """Generate, quality-check and repair a story before recording it in history."""
     avoid = set()
     for _ in range(5):
         meta = series.build(SERIES, hist, avoid)
-        data = json.loads(call_llm(meta["prompt"]))
-        if data.get("skip"):
-            print("LLM skipped", meta.get("work"), "- trying another")
+        feedback = ""
+        for attempt in range(2):
+            data = json.loads(call_llm(meta["prompt"] + feedback))
+            if data.get("skip"):
+                print("LLM skipped", meta.get("work"), "- trying another")
+                avoid.add(meta.get("work"))
+                break
+            report = quality.check(data, hist)
+            if report["passed"]:
+                data = series.finish(meta, data, hist)
+                data["quality_report"] = report
+                data["style"], data["voice"] = meta["style"], meta["voice"]
+                data["hero"] = data.get("hero") or meta["hero_default"]
+                return data
+            print("story quality gate rejected draft:", report["issues"])
+            feedback = (
+                "\n\nQUALITY REPAIR: Your previous draft failed these checks: "
+                + "; ".join(report["issues"])
+                + ". Rewrite the entire JSON story. Follow every scene and story length rule exactly. "
+                "Do not add unsupported canon facts. Return only corrected JSON."
+            )
+        else:
             avoid.add(meta.get("work"))
-            continue
-        data = series.finish(meta, data, hist)
-        data["style"], data["voice"] = meta["style"], meta["voice"]
-        data["hero"] = data.get("hero") or meta["hero_default"]
-        return data
-    raise RuntimeError("could not get a usable story")
+    raise RuntimeError("could not generate a story that passed the quality gate")
 
 
 def get_image(prompt, path, seed):
@@ -134,6 +149,14 @@ def chunks(words, dur):
     return out
 
 
+def caption_font_size(text):
+    """Shrink long uppercase captions so their text and box stay inside the 1080px frame."""
+    length = max(len(str(text or "")), 1)
+    estimated_width_per_character = 0.82
+    available_width = 960  # leaves room for the text border and box padding
+    return max(24, min(76, int(available_width / (estimated_width_per_character * length))))
+
+
 def make_clip(i, scene, hero, seed, style):
     img, aud, clip = OUT / f"s{i}.jpg", OUT / f"s{i}.mp3", OUT / f"s{i}.mp4"
     prompt = f"{scene['image_prompt']}. Composition: {SHOT_COMPOSITIONS[i % len(SHOT_COMPOSITIONS)]}. Visual anchor: {hero}. {style}"
@@ -157,7 +180,7 @@ def make_clip(i, scene, hero, seed, style):
         cf = OUT / f"c{i}_{k}.txt"
         cf.write_text(txt.upper())
         color = "white"
-        vf += (f",drawtext=fontfile={FONT}:textfile={cf}:fontcolor={color}:fontsize=76:box=1:boxcolor=black@0.32:boxborderw=18:shadowcolor=black:shadowx=2:shadowy=2:"
+        vf += (f",drawtext=fontfile={FONT}:textfile={cf}:fontcolor={color}:fontsize={caption_font_size(txt)}:box=1:boxcolor=black@0.32:boxborderw=18:shadowcolor=black:shadowx=2:shadowy=2:"
                f"borderw=9:bordercolor=black:x=(w-text_w)/2:y=h*0.68:"
                f"enable='between(t,{s:.2f},{e:.2f})'")
     subprocess.run(
@@ -199,6 +222,26 @@ def build_video(data):
     return final
 
 
+def _youtube_upload_body(data):
+    return {
+        "snippet": {
+            "title": data["title"][:90] + " #Shorts",
+            "description": data["description"] + "\n\nAI-generated visuals and voice. #Shorts",
+            "tags": data.get("tags", [])[:15], "categoryId": "24"},
+        "status": {"privacyStatus": PRIVACY, "selfDeclaredMadeForKids": False,
+                   "containsSyntheticMedia": True},
+    }
+
+
+def _execute_youtube_upload(yt, path, data, media_file_upload):
+    """Execute exactly one upload request with the disclosure field intact."""
+    body = _youtube_upload_body(data)
+    request = yt.videos().insert(
+        part="snippet,status", body=body,
+        media_body=media_file_upload(str(path), mimetype="video/mp4", resumable=True))
+    return request.execute()
+
+
 def upload_youtube(path, data):
     from google.oauth2.credentials import Credentials
     from googleapiclient.discovery import build
@@ -209,24 +252,8 @@ def upload_youtube(path, data):
         client_id=os.environ["YT_CLIENT_ID"], client_secret=os.environ["YT_CLIENT_SECRET"],
         scopes=["https://www.googleapis.com/auth/youtube.upload"])
     yt = build("youtube", "v3", credentials=creds)
-    body = {
-        "snippet": {
-            "title": data["title"][:90] + " #Shorts",
-            "description": data["description"] + "\n\nAI-generated visuals and voice. #Shorts",
-            "tags": data.get("tags", [])[:15], "categoryId": "24"},
-        "status": {"privacyStatus": PRIVACY, "selfDeclaredMadeForKids": False},
-    }
-    body["status"]["containsSyntheticMedia"] = True  # honest AI-content disclosure
-    try:
-        res = yt.videos().insert(
-            part="snippet,status", body=body,
-            media_body=MediaFileUpload(str(path), mimetype="video/mp4", resumable=True)).execute()
-    except Exception as e:
-        print("upload retry without synthetic-media flag:", repr(e)[:150])
-        body["status"].pop("containsSyntheticMedia", None)
-        res = yt.videos().insert(
-            part="snippet,status", body=body,
-            media_body=MediaFileUpload(str(path), mimetype="video/mp4", resumable=True)).execute()
+    # Do not retry after dropping containsSyntheticMedia. Fail closed on API errors.
+    res = _execute_youtube_upload(yt, path, data, MediaFileUpload)
     print("uploaded:", f"https://www.youtube.com/watch?v={res['id']}", PRIVACY)
 
 
@@ -236,6 +263,7 @@ if __name__ == "__main__":
     if not os.environ.get("VOICE"):
         VOICE = data["voice"]
     print(json.dumps({k: v for k, v in data.items() if k != "full_story"}, indent=2))
+    (OUT / "quality-report.json").write_text(json.dumps(data["quality_report"], indent=2))
     (OUT / "story.txt").write_text(data["title"] + "\n\n" + data["full_story"] + "\n\n"
                                    + " ".join("#" + t.replace(" ", "") for t in data["tags"]))
     blender_stills(data)
