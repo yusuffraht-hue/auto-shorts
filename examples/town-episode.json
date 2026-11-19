@@ -1,0 +1,8 @@
+{
+  "series": "town",
+  "shots": [
+    {"location": "square", "character": "mira", "action": "wave", "camera": "wide", "frames": 72},
+    {"location": "school", "character": "kai", "action": "point", "camera": "medium", "frames": 72},
+    {"location": "park", "character": "noor", "action": "surprised", "camera": "close", "frames": 72}
+  ]
+}
