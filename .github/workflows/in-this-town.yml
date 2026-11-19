@@ -43,6 +43,10 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          VOICESTUDIO_URL: ${{ secrets.VOICESTUDIO_URL }}
+          VOICESTUDIO_API_KEY: ${{ secrets.VOICESTUDIO_API_KEY }}
+          VOICESTUDIO_MODEL: ${{ vars.VOICESTUDIO_MODEL || 'tts-1' }}
+          VOICESTUDIO_VOICE: ${{ vars.VOICESTUDIO_VOICE || 'default' }}
           PRIVACY: ${{ vars.PRIVACY || 'private' }}
           DRY_RUN: ${{ inputs.dry_run || false }}
           USE_BLENDER: "1"
