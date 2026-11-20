@@ -84,6 +84,16 @@ class VoiceStudioTests(unittest.TestCase):
                     {"VOICESTUDIO_URL": "http://localhost:3900"}, session
                 )
 
+    def test_rejects_blank_and_non_text_before_network(self):
+        session = Mock()
+        for value in ("", "  ", "\\n\\t", None, 42):
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, "nonempty text"):
+                voice_studio.synthesize(
+                    value, "/tmp/not-written.mp3",
+                    {"VOICESTUDIO_URL": "http://localhost:3900"}, session
+                )
+        session.post.assert_not_called()
+
     def test_rejects_input_over_voice_studio_limit(self):
         session = Mock()
         with self.assertRaises(ValueError):
