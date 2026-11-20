@@ -63,6 +63,8 @@ def synthesize(text, path, env=None, session=requests):
     if not raw_url:
         raise RuntimeError("VOICESTUDIO_URL is not configured")
     base_url = _validate_base_url(raw_url)
+    if not isinstance(text, str) or not text.strip():
+        raise ValueError("VoiceStudio speech input must be nonempty text")
     if len(text.encode("utf-16-le")) // 2 > 2000:
         raise ValueError("VoiceStudio speech input exceeds 2,000 UTF-16 units")
 
