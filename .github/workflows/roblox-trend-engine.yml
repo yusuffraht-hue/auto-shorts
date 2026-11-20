@@ -1,0 +1,44 @@
+name: roblox-trend-engine
+
+on:
+  schedule:
+    - cron: "0 16 * * *" # Daily at 16:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: roblox-trend-engine
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Scan public Roblox discovery signals
+        run: python roblox_trend_engine/trend_engine.py
+      - name: Run trend engine tests
+        run: python -m unittest discover -s roblox_trend_engine/tests -v
+      - name: Upload daily report
+        uses: actions/upload-artifact@v4
+        with:
+          name: roblox-trend-report
+          path: |
+            roblox_trend_engine/reports/latest-report.md
+            roblox_trend_engine/reports/latest-report.json
+          retention-days: 30
+      - name: Save trend history
+        if: success()
+        run: |
+          git config user.name "roblox-trend-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add roblox_trend_engine/history
+          git diff --cached --quiet && exit 0
+          git commit -m "trend-engine: daily Roblox snapshot"
+          for i in 1 2 3 4; do git pull --rebase origin main && git push origin HEAD:main && break || sleep 5; done

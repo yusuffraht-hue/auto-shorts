@@ -1,0 +1,18 @@
+{
+  "name": "CritterHatchersSkyIsles",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {"$className": "ReplicatedStorage"},
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "GameServer": {"$path": "src/server/GameServer.server.lua"}
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "HatchUI": {"$path": "src/client/HatchUI.client.lua"}
+      }
+    }
+  }
+}
