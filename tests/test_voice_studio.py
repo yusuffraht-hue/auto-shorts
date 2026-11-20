@@ -86,7 +86,7 @@ class VoiceStudioTests(unittest.TestCase):
 
     def test_rejects_blank_and_non_text_before_network(self):
         session = Mock()
-        for value in ("", "  ", "\\n\\t", None, 42):
+        for value in ("", "  ", "\n\t", None, 42):
             with self.subTest(value=value), self.assertRaisesRegex(ValueError, "nonempty text"):
                 voice_studio.synthesize(
                     value, "/tmp/not-written.mp3",
