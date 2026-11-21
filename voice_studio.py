@@ -87,7 +87,10 @@ def synthesize(text, path, env=None, session=requests):
         json=payload,
         headers=headers,
         timeout=(15, 240),
+        allow_redirects=False,  # never forward a Bearer key to a redirected host
     )
+    if 300 <= response.status_code < 400:
+        raise RuntimeError("VoiceStudio redirected the speech request; refusing to forward credentials")
     response.raise_for_status()
     content_type = response.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
     if content_type != "audio/mpeg":
