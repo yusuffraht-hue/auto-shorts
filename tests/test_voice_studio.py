@@ -13,6 +13,7 @@ class VoiceStudioTests(unittest.TestCase):
 
     def test_synthesize_posts_openai_compatible_request_and_writes_audio(self):
         response = Mock()
+        response.status_code = 200
         response.content = b"ID3" + b"x" * 1197
         response.headers = {"Content-Type": "audio/mpeg"}
         response.raise_for_status.return_value = None
@@ -35,6 +36,25 @@ class VoiceStudioTests(unittest.TestCase):
             "input": "Hello there.", "response_format": "mp3",
         })
         self.assertEqual(kwargs["headers"]["Authorization"], "Bearer secret-test")
+        self.assertIs(kwargs["allow_redirects"], False)
+
+    def test_refuses_redirect_even_if_redirect_body_looks_like_mp3(self):
+        response = Mock()
+        response.status_code = 302
+        response.headers = {"Content-Type": "audio/mpeg", "Location": "https://elsewhere.example"}
+        response.content = b"ID3" + b"x" * 1197
+        session = Mock()
+        session.post.return_value = response
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "speech.mp3"
+            with self.assertRaisesRegex(RuntimeError, "redirected"):
+                voice_studio.synthesize(
+                    "Hello", output,
+                    {"VOICESTUDIO_URL": "https://voice.example",
+                     "VOICESTUDIO_API_KEY": "secret-test"}, session
+                )
+            self.assertFalse(output.exists())
+        self.assertIs(session.post.call_args.kwargs["allow_redirects"], False)
 
     def test_rejects_remote_http_before_sending_any_api_key(self):
         session = Mock()
@@ -58,6 +78,7 @@ class VoiceStudioTests(unittest.TestCase):
 
     def test_rejects_non_audio_content_type_even_when_response_is_large(self):
         response = Mock()
+        response.status_code = 200
         response.content = b"ID3" + b"x" * 1197
         response.headers = {"Content-Type": "text/html"}
         response.raise_for_status.return_value = None
@@ -72,6 +93,7 @@ class VoiceStudioTests(unittest.TestCase):
 
     def test_rejects_non_mp3_body_even_when_content_type_claims_audio(self):
         response = Mock()
+        response.status_code = 200
         response.content = b"<html>" * 300
         response.headers = {"Content-Type": "audio/mpeg"}
         response.raise_for_status.return_value = None
@@ -103,6 +125,7 @@ class VoiceStudioTests(unittest.TestCase):
 
     def test_rejects_small_response(self):
         response = Mock()
+        response.status_code = 200
         response.content = b"tiny"
         response.headers = {"Content-Type": "audio/mpeg"}
         response.raise_for_status.return_value = None
