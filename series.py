@@ -151,7 +151,12 @@ Use original narration; never quote the work. Avoid these recent titles: {[e['ti
 
 
 def build(name, hist, avoid=()):
-    return build_anime(hist, avoid) if name == "anime" else build_town(hist)
+    """Fail closed on unknown series rather than silently producing town content."""
+    if name == "anime":
+        return build_anime(hist, avoid)
+    if name == "town":
+        return build_town(hist)
+    raise ValueError(f"Unsupported series: {name!r}; expected 'town' or 'anime'")
 
 
 def _clean_title(title, work):
