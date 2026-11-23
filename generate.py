@@ -253,7 +253,14 @@ def upload_youtube(path, data):
         scopes=["https://www.googleapis.com/auth/youtube.upload"])
     yt = build("youtube", "v3", credentials=creds)
     # Do not retry after dropping containsSyntheticMedia. Fail closed on API errors.
-    res = _execute_youtube_upload(yt, path, data, MediaFileUpload)
+    try:
+        res = _execute_youtube_upload(yt, path, data, MediaFileUpload)
+    except Exception as exc:
+        from youtube_errors import youtube_upload_error
+        safe_message = youtube_upload_error(exc)
+        if safe_message is None:
+            raise
+        raise RuntimeError(safe_message) from None
     print("uploaded:", f"https://www.youtube.com/watch?v={res['id']}", PRIVACY)
 
 
