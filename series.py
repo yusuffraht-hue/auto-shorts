@@ -119,6 +119,8 @@ Avoid repeating: {recent}.
 
 
 def build_anime(hist, avoid=()):
+    if os.environ.get("FORMAT", "auto") not in ("auto", "analysis"):
+        raise RuntimeError("Only evidence-based analysis is supported; recap and what-if are disabled")
     topic = editorial.select_topic(hist, avoid, os.environ.get("WORK", "auto"))
     work = topic["work"]
     hero = "anonymous symbolic figure, no recognizable franchise character"
