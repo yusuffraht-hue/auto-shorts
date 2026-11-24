@@ -24,6 +24,7 @@ jobs:
     timeout-minutes: 50
     env:
       SERIES: town
+      COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -65,3 +66,22 @@ jobs:
           git diff --cached --quiet && exit 0
           git commit -m "history: ${SERIES}"
           for i in 1 2 3 4; do git pull --rebase origin main && git push origin HEAD:main && break || sleep 5; done
+      - name: Host the video for Instagram
+        if: ${{ success() && !inputs.dry_run && env.COMPOSIO_API_KEY != '' && vars.INSTAGRAM_POST != '0' }}
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tmp=$(mktemp -d)
+          file="${SERIES}-${GITHUB_RUN_ID}.mp4"
+          mkdir "$tmp/media" && cp out/final.mp4 "$tmp/media/$file"
+          cd "$tmp" && git init -q -b media && git add media
+          git -c user.name=auto-shorts-bot -c user.email=bot@users.noreply.github.com commit -qm "media for instagram"
+          git push -qf "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" media:media
+          echo "VIDEO_URL=https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/media/media/${file}" >> "$GITHUB_ENV"
+      - name: Post the Reel to Instagram (Composio)
+        if: ${{ success() && env.VIDEO_URL != '' }}
+        continue-on-error: true
+        env:
+          INSTAGRAM_POST: ${{ vars.INSTAGRAM_POST }}
+        run: python post_instagram.py "$VIDEO_URL" out/story.txt
