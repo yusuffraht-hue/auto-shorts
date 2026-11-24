@@ -58,6 +58,12 @@ def evaluate_runs(runs, now=None):
     return actions
 
 
+def retry_body():
+    """Dispatch body for a retry. The series workflows default dry_run to true for manual runs,
+    so a retry must say dry_run=false or it would only generate a video and never upload it."""
+    return {"ref": "main", "inputs": {"dry_run": "false"}}
+
+
 def check_youtube_login(env, opener=urllib.request.urlopen):
     keys = ("YT_CLIENT_ID", "YT_CLIENT_SECRET", "YT_REFRESH_TOKEN")
     if not all(env.get(k) for k in keys):
@@ -105,7 +111,7 @@ def main(env=None):
                    if "pull_request" not in i}
     for action in actions:
         if action["type"] == "retry":
-            github("POST", f"/repos/{repo}/actions/workflows/{action['workflow']}/dispatches", token, {"ref": "main"})
+            github("POST", f"/repos/{repo}/actions/workflows/{action['workflow']}/dispatches", token, retry_body())
             print("retry started:", action["name"])
         elif action["title"] in open_titles:
             print("issue already open:", action["title"])

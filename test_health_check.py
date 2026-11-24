@@ -48,6 +48,13 @@ class EvaluateRunsTests(unittest.TestCase):
         self.assertEqual(hc.evaluate_runs(runs, NOW), [])
 
 
+class RetryTests(unittest.TestCase):
+    def test_retry_is_a_real_run_not_a_dry_run(self):
+        body = hc.retry_body()
+        self.assertEqual(body["ref"], "main")
+        self.assertEqual(body["inputs"], {"dry_run": "false"})
+
+
 class FakeResponse:
     def __init__(self, body=b"{}"):
         self.body = body
