@@ -34,12 +34,12 @@ VIDEO_RULES = """Write TWO versions of the SAME story:
 (a) "full_story": 140-180 words, 3 short paragraphs, readable as a caption.
 (b) "scenes": exactly 10 scenes for a 30-40 second Short.
 Each scene line is 5-7 natural spoken words. Use contractions where natural, varied sentence openings, simple vivid language, and punctuation that creates realistic pauses. Each image_prompt is 8-16 visual words. Vary the subject, setting, and camera angle across scenes; do not reuse the same silhouette pose or background.
-Scene 10 must end by telling viewers the full story is in the caption.
+Scene 10 must deliver a complete payoff; the caption is optional extra context.
 1 HOOK: start immediately with the strangest rule, danger, or unanswered question. No greeting or setup before the hook.
 2-4 SETUP: introduce hero and goal with concrete visuals.
 5-8 ESCALATE: every scene adds a new problem, discovery or reversal; avoid repeating information.
 9 TWIST: reveal that changes what viewers thought.
-10 END: finish on a specific cliffhanger or question, then say exactly: "Full story in caption."
+10 END: finish on a specific cliffhanger or question, without requiring the viewer to read the caption.
 Spoken narration only. No stage directions, generic filler, fake facts, or repetitive phrases. Proofread the story for grammar, spelling, continuity, and complete words before returning it. Keep the story easy to follow on first listen and family-friendly.
 Never copy dialogue or prose from an existing work."""
 VIDEO_RULES = VIDEO_RULES + "\n" + humanize.STYLE_RULES
@@ -86,17 +86,32 @@ def _fill(spec, hero, image):
     return spec.replace("HERO_RULE", hero).replace("IMAGE_RULE", image)
 
 
+# Rotate formats within the original channel; no additional daily render jobs.
+ORIGINAL_FORMATS = {
+    "town": "A personal mystery in the recurring town, resolved through a clever discovery.",
+    "world": "Explore one invented natural or magical rule and its everyday consequences for the town. Use a concrete example, not an abstract lecture.",
+    "kingdom": "Explore a neighboring fictional settlement through trade, inventions, cooperation or a civic dilemma. Show a meaningful outcome.",
+    "power": "Explain one original fictional ability, a clear limitation and an unexpected peaceful application. No existing franchise powers.",
+    "mystery": "Present an original fair-play puzzle with visible clues and reveal the answer in the video.",
+}
+
+def original_format(hist):
+    recent = [e.get("kind") for e in hist.get("episodes", [])[-10:]]
+    return min(ORIGINAL_FORMATS, key=lambda k: recent.count(k))
+
 def build_town(hist):
+    kind = original_format(hist)
     recent = [e["title"] for e in hist["episodes"][-6:]]
     theme = random.choice(TOWN_THEMES)
     prompt = f"""Write an ORIGINAL "In this town..." story about ONE invented protagonist in a blocky toy-town.
-Theme: {theme}. Use the recurring original town: brick library, blue-roof school, central clock tower and green park. Keep geography and character appearance consistent. Give the episode a satisfying payoff; a sequel hook is optional. Never use real characters or plots from existing media.
+Format: {kind}. Editorial goal: {ORIGINAL_FORMATS[kind]}.
+Optional inspiration (ignore if incompatible): {theme}. Use the recurring original town: brick library, blue-roof school, central clock tower and green park. Keep geography and character appearance consistent. Give the episode a satisfying payoff; a sequel hook is optional. Never use real characters or plots from existing media.
 Every image_prompt must show the exact action and location in its narration line. Do not move a scene to an unrelated setting or invent props that change the story.
 Avoid repeating: {recent}.
 {VIDEO_RULES.replace("finish on a specific cliffhanger or question", "finish with a satisfying resolution or earned question").replace("reveal that changes what viewers thought", "deliver a meaningful payoff or reveal")}
 {_fill(SPEC, "15-word description of the blocky protagonist's clothes and hair",
        "FIRST WORD must be the best matching location: street, park, classroom, house, market, underground or library; then show the exact narrated action, camera angle and lighting. Never choose an unrelated setting.")}"""
-    return {"series": "town", "kind": "town", "prompt": prompt, "style": STYLE_TOWN,
+    return {"series": "town", "kind": kind, "prompt": prompt, "style": STYLE_TOWN,
             "voice": "en-US-AndrewMultilingualNeural",
             "hero_default": "a friendly blocky toy character with a bright jacket",
             "tags": ["shorts", "storytime", "inthistown", "blocky", "mystery", "superpowers"],
