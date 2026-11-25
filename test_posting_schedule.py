@@ -3,8 +3,12 @@ from datetime import datetime, timezone
 from posting_schedule import due_slot
 
 class ScheduleTests(unittest.TestCase):
-    def test_winter(self):
-        self.assertEqual(due_slot(datetime(2026,12,25,15,tzinfo=timezone.utc))["format"], "world")
+    def test_winter_before_permanent_alberta_time(self):
+        self.assertEqual(due_slot(datetime(2025,12,25,15,tzinfo=timezone.utc))["format"], "world")
+    def test_winter_after_permanent_alberta_time(self):
+        self.assertEqual(due_slot(datetime(2026, 12, 25, 14, tzinfo=timezone.utc)),
+                         {"format": "world", "key": "2026-12-25:world"})
+
     def test_summer(self):
         self.assertEqual(due_slot(datetime(2026,7,25,14,tzinfo=timezone.utc))["format"], "world")
     def test_no_slot(self):
