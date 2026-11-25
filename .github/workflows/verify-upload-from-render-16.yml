@@ -39,6 +39,7 @@ jobs:
           import contextlib
           import io
           import json
+          import os
           import re
           from pathlib import Path
           from post_youtube import publisher_from_env
