@@ -43,9 +43,9 @@ jobs:
               except HTTPError as error:
                   try:
                       issue = json.load(error).get("error") or {}
-                      error_code = issue.get("code") if isinstance(issue, dict) else None
-                      if isinstance(error_code, str) and error_code.replace("_", "").isalnum() and len(error_code) < 60:
-                          print(f"Composio error code: {error_code}", flush=True)
+                      slug = issue.get("slug") if isinstance(issue, dict) else None
+                      if isinstance(slug, str) and slug.replace("_", "").replace("-", "").isalnum() and len(slug) < 60:
+                          print(f"Composio error: {slug}", flush=True)
                   except (OSError, ValueError, AttributeError):
                       pass
                   raise SystemExit(f"{label}: HTTP {error.code}") from None
@@ -62,8 +62,12 @@ jobs:
               account = items[0]["id"]
           result = request("/tools/execute/proxy", "Composio proxy", {
               "connected_account_id": account,
-              "endpoint": "https://www.googleapis.com/youtube/v3/channels?part=id&mine=true",
+              "endpoint": "https://www.googleapis.com/youtube/v3/channels",
               "method": "GET",
+              "parameters": [
+                  {"type": "query", "name": "part", "value": "id"},
+                  {"type": "query", "name": "mine", "value": "true"},
+              ],
           })
           if result.get("status") != 200:
               status = result.get("status")
