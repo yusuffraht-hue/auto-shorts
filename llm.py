@@ -29,8 +29,8 @@ for _name in ("GEMINI_API_KEY", "GROQ_API_KEY", "OPENAI_API_KEY"):
         GROQ = _v
 SCENE_COUNT = 10
 SUFFIX = (
-    "\nOutput raw JSON only. Exactly 10 scenes. Keep every image_prompt to 8-16 words. "
-    "Keep scene lines to 5-7 spoken words. No markdown fences."
+    "\nOutput raw JSON only with exactly 10 scenes. Aim for 11 words per image prompt, "
+    "6 spoken words per scene line (5-7 spoken words allowed), and 155 words in full_story. Count each before submitting. No markdown fences."
 )
 
 
@@ -177,21 +177,32 @@ def _github(prompt):
             print("llm: github returned non-chat response; falling back")
 
 
+_pollinations_available_at = 0.0
+
+
 def _pollinations(prompt):
-    for attempt in range(5):
+    global _pollinations_available_at
+    for _ in range(3):
+        delay = _pollinations_available_at - time.monotonic()
+        if delay > 0:
+            time.sleep(delay)
         r = requests.post(
             "https://text.pollinations.ai/openai",
             json={"model": "openai-fast", "max_tokens": 12000, "seed": random.randint(1, 10**8),
                   "messages": [{"role": "user", "content": prompt}]}, timeout=180)
         print("llm: pollinations", r.status_code, repr(r.text[:160]))
         if r.status_code == 200:
+            _pollinations_available_at = time.monotonic() + 48
             try:
                 yield r.json()["choices"][0]["message"]["content"]
             except (KeyError, IndexError, ValueError):
                 print("llm: pollinations returned no message content")
-        elif r.status_code == 429:
-            m = re.search(r"Retry after (\d+)s", r.text)
-            time.sleep(int(m.group(1)) + 3 if m else 30)
+        elif r.status_code in (402, 429):
+            retry = re.search(r"Retry after (\d+)s", r.text, re.I)
+            if r.status_code == 402 and not retry:
+                return
+            wait = min(int(retry.group(1)) + 3, 90) if retry else 48
+            _pollinations_available_at = time.monotonic() + wait
         elif r.status_code == 400 and "output token limit" in r.text.lower():
             # Prompt is already deliberately compact; don't hammer the same rejected request.
             break

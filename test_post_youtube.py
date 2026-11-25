@@ -17,11 +17,15 @@ class PublisherTests(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         self.receipt = Path(directory.name) / "receipt.json"
 
+    @staticmethod
+    def status_response(resource, method, query, body):
+        return body
+
     def test_private_before_public_and_verifies_both(self):
         with (patch.object(self.publisher, "_stage", return_value={"s3key": "staged"}),
               patch.object(self.publisher, "_post", return_value={
-                  "successful": True, "data": {"id": "video"}}) as post,
-              patch.object(self.publisher, "_proxy") as proxy,
+                  "successful": True, "data": {"video": {"id": "video"}}}) as post,
+              patch.object(self.publisher, "_proxy", side_effect=self.status_response) as proxy,
               patch.object(self.publisher, "_verify") as verify):
             self.publisher.publish(Path("episode.mp4"), self.metadata, self.receipt)
         self.assertEqual(post.call_args.args[1]["arguments"]["privacyStatus"], "private")
@@ -35,8 +39,8 @@ class PublisherTests(unittest.TestCase):
     def test_failed_disclosure_keeps_video_private(self):
         with (patch.object(self.publisher, "_stage", return_value={"s3key": "staged"}),
               patch.object(self.publisher, "_post", return_value={
-                  "successful": True, "data": {"id": "video"}}),
-              patch.object(self.publisher, "_proxy") as proxy,
+                  "successful": True, "data": {"video": {"id": "video"}}}),
+              patch.object(self.publisher, "_proxy", side_effect=self.status_response) as proxy,
               patch.object(self.publisher, "_verify", side_effect=RuntimeError("missing disclosure"))):
             with self.assertRaisesRegex(RuntimeError, "missing disclosure"):
                 self.publisher.publish(Path("episode.mp4"), self.metadata, self.receipt)

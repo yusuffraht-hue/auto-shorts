@@ -13,8 +13,8 @@ UPLOAD_TOOL = "YOUTUBE_MULTIPART_UPLOAD_VIDEO"
 
 class YouTubePublisher:
     def __init__(self, api_key, account_id, channel_id):
-        if not all((api_key, account_id, channel_id)):
-            raise RuntimeError("Composio API key, account ID and expected YouTube channel are required")
+        if not api_key or not channel_id:
+            raise RuntimeError("Composio API key and expected YouTube channel are required")
         self.api_key = api_key
         self.account_id = account_id
         self.channel_id = channel_id
@@ -45,6 +45,22 @@ class YouTubePublisher:
         return result["data"]
 
     def preflight(self):
+        if not self.account_id:
+            try:
+                response = requests.get(
+                    API + "/connected_accounts",
+                    headers={"x-api-key": self.api_key},
+                    params={"toolkit_slugs": "youtube", "statuses": "ACTIVE", "limit": 2},
+                    timeout=60,
+                )
+                if not response.ok:
+                    raise RuntimeError(f"Composio account lookup returned HTTP {response.status_code}")
+                accounts = response.json()["items"]
+            except (requests.RequestException, ValueError, KeyError):
+                raise RuntimeError("Composio account lookup failed") from None
+            if len(accounts) != 1:
+                raise RuntimeError("Set COMPOSIO_YOUTUBE_ACCOUNT_ID to select the active YouTube account")
+            self.account_id = accounts[0]["id"]
         result = self._proxy("channels", "GET", {"part": "id", "mine": "true"})
         if [item["id"] for item in result.get("items", [])] != [self.channel_id]:
             raise RuntimeError("Composio is connected to a different YouTube channel")
@@ -70,13 +86,24 @@ class YouTubePublisher:
                 raise RuntimeError(f"Composio video staging returned HTTP {response.status_code}")
         return {"name": path.name, "mimetype": mime_type, "s3key": staging["key"]}
 
+    def _set_status(self, video_id, expected, defaults):
+        payload = {"id": video_id, "status": {**defaults, **expected}}
+        result = self._proxy("videos", "PUT", {"part": "status"}, payload)
+        status = result.get("status", {})
+        if result.get("id") != video_id or any(status.get(key) != value for key, value in expected.items()):
+            raise RuntimeError(f"YouTube did not confirm the requested status for {video_id}")
+        self._verify(video_id, expected)
+
     def _verify(self, video_id, expected):
         result = self._proxy("videos", "GET", {"part": "snippet,status", "id": video_id})
         items = result.get("items", [])
         if len(items) != 1 or items[0]["snippet"]["channelId"] != self.channel_id:
             raise RuntimeError(f"YouTube could not verify video {video_id} on the expected channel")
         status = items[0]["status"]
-        if any(status.get(key) != value for key, value in expected.items()):
+        # The write response echoes the synthetic disclosure. A subsequent videos.list
+        # can omit that field, but any value it does return must agree with the write.
+        if any(status.get(key) != value for key, value in expected.items()
+               if key != "containsSyntheticMedia" or key in status):
             raise RuntimeError(f"YouTube returned unexpected visibility or disclosure for {video_id}")
         if status.get("uploadStatus") in {"failed", "rejected", "deleted"}:
             raise RuntimeError(f"YouTube rejected video {video_id}")
@@ -99,16 +126,18 @@ class YouTubePublisher:
         if result.get("successful") is not True:
             raise RuntimeError("Composio did not confirm the private YouTube upload")
         data = result.get("data") or {}
-        video_id = (data.get("data") or data).get("id")
+        data = data.get("data") or data
+        video = data.get("video") or data
+        video_id = video.get("id")
         if not isinstance(video_id, str) or not video_id:
             raise RuntimeError("Composio did not return a YouTube video ID")
         receipt.write_text(json.dumps({"state": "uploaded_private", "video_id": video_id}))
         private = {**requested, "privacyStatus": "private"}
-        self._proxy("videos", "PUT", {"part": "status"}, {"id": video_id, "status": private})
-        self._verify(video_id, private)
+        defaults = {key: value for key, value in video.get("status", {}).items()
+                    if key in {"license", "embeddable", "publicStatsViewable"}}
+        self._set_status(video_id, private, defaults)
         if requested != private:
-            self._proxy("videos", "PUT", {"part": "status"}, {"id": video_id, "status": requested})
-            self._verify(video_id, requested)
+            self._set_status(video_id, requested, defaults)
         receipt.write_text(json.dumps({"state": "verified", "video_id": video_id, **requested}))
         print(f"YouTube verified ({requested['privacyStatus']}): https://www.youtube.com/watch?v={video_id}")
 
