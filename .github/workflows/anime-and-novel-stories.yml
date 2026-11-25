@@ -37,6 +37,7 @@ concurrency:
 
 jobs:
   make:
+    if: github.event_name != 'schedule' || vars.YOUTUBE_SIX_FORMATS != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 50
     env:

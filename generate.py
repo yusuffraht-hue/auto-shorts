@@ -274,8 +274,12 @@ def upload_youtube(path, data, creds=None):
 if __name__ == "__main__":
     dry_run = os.environ.get("DRY_RUN", "false").lower() == "true"
     queue_only = os.environ.get("YOUTUBE_QUEUE_ONLY", "false").lower() == "true"
-    creds = None
-    if not dry_run and not queue_only:
+    creds = publisher = None
+    if not dry_run and not queue_only and os.environ.get("YOUTUBE_PROVIDER") == "composio":
+        from post_youtube import publisher_from_env
+        publisher = publisher_from_env()
+        publisher.preflight()
+    elif not dry_run and not queue_only:
         if not all(os.environ.get(k) for k in ("YT_CLIENT_ID", "YT_CLIENT_SECRET", "YT_REFRESH_TOKEN")):
             raise RuntimeError("YouTube credentials missing; use dry_run for render-only tests")
         creds = youtube_credentials()
@@ -298,9 +302,9 @@ if __name__ == "__main__":
                     "quality_passed": data["quality_report"]["passed"], "state": "pending_upload"}
         (OUT / "youtube-pending.json").write_text(json.dumps(manifest, indent=2))
         print("Render queued for authorized upload; history unchanged.")
-    elif all(os.environ.get(k) for k in ("YT_CLIENT_ID", "YT_CLIENT_SECRET", "YT_REFRESH_TOKEN")):
-        upload_youtube(video, data, creds)
+    elif publisher is not None:
+        publisher.publish(video, _youtube_upload_body(data), OUT / "youtube-receipt.json")
         series.save(SERIES, hist)
-    else:
-        print("YouTube secrets not set; video saved at", video)
+    elif creds is not None:
+        upload_youtube(video, data, creds)
         series.save(SERIES, hist)

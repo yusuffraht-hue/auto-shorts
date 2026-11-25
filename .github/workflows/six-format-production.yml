@@ -1,0 +1,103 @@
+name: Six-format production
+
+on:
+  schedule:
+    # Alberta Time is permanently UTC−6. Use the triggering cron to route delayed runs.
+    - cron: "0 14 * * *"
+    - cron: "0 16 * * *"
+    - cron: "0 18 * * *"
+    - cron: "0 20 * * *"
+    - cron: "0 22 * * *"
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+    inputs:
+      format:
+        description: Episode format
+        type: choice
+        options: [world, kingdom, town, power, mystery, analysis]
+        required: true
+      upload:
+        description: Upload and verify one private YouTube video
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  models: read
+
+concurrency:
+  group: six-format-production
+
+jobs:
+  produce:
+    if: github.event_name == 'workflow_dispatch' || vars.YOUTUBE_SIX_FORMATS == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Resolve format
+        id: route
+        env:
+          REQUESTED_FORMAT: ${{ inputs.format }}
+          CRON: ${{ github.event.schedule }}
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import os
+          from datetime import datetime, timezone
+          from posting_schedule import due_slot
+
+          kind = os.environ["REQUESTED_FORMAT"]
+          if not kind:
+              minute, hour, *_ = os.environ["CRON"].split()
+              configured_slot = datetime(2026, 12, 1, int(hour), int(minute), tzinfo=timezone.utc)
+              kind = due_slot(configured_slot)["format"]
+          print("format=" + kind)
+          print("series=" + ("anime" if kind == "analysis" else "town"))
+          PY
+      - name: Guard against duplicate uploads
+        if: ${{ github.event_name == 'schedule' || inputs.upload }}
+        run: test "$GITHUB_RUN_ATTEMPT" -eq 1
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core blender
+      - run: pip install -r requirements.txt
+      - name: Make the short
+        run: python generate.py
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SERIES: ${{ steps.route.outputs.series }}
+          ORIGINAL_FORMAT: ${{ steps.route.outputs.format }}
+          USE_BLENDER: ${{ steps.route.outputs.series == 'town' && '1' || '0' }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && !inputs.upload }}
+          YOUTUBE_PROVIDER: composio
+          COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
+          COMPOSIO_YOUTUBE_ACCOUNT_ID: ${{ vars.COMPOSIO_YOUTUBE_ACCOUNT_ID }}
+          YOUTUBE_CHANNEL_ID: ${{ vars.YOUTUBE_CHANNEL_ID }}
+          PRIVACY: ${{ github.event_name == 'schedule' && vars.PRIVACY || 'private' }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_FREE_CONFIRMED: ${{ vars.CLOUDFLARE_FREE_CONFIRMED || 'false' }}
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: ${{ steps.route.outputs.format || 'diagnostics' }}
+          path: |
+            out/final.mp4
+            out/story.txt
+            out/quality-report.json
+            out/youtube-receipt.json
+          retention-days: 7
+          if-no-files-found: ignore
+      - name: Save episode history
+        if: github.event_name == 'schedule'
+        run: |
+          git config user.name auto-shorts-bot
+          git config user.email bot@users.noreply.github.com
+          git add history
+          git diff --cached --quiet && exit 0
+          git commit -m "history: ${STORY_FORMAT}"
+          git pull --rebase origin main
+          git push origin HEAD:main
+        env:
+          STORY_FORMAT: ${{ steps.route.outputs.format }}
