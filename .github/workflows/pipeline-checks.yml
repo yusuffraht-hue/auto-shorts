@@ -2,7 +2,7 @@ name: pipeline-checks
 
 on:
   push:
-    branches: [main]
+    branches: [main, integrate/production-v3]
   pull_request:
     branches: [main]
 
