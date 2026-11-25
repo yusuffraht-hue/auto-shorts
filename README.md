@@ -12,11 +12,11 @@ The pipeline creates a script, narration, scene images, captions and a vertical 
 ## GitHub Actions workflows
 
 - **Six-format render check** makes and decodes one MP4 per format and saves each video, story and probe report as a short-lived artifact.
-- **Six-format production** has daily start slots at 08:00, 10:00, 12:00, 14:00, 16:00 and 18:00 Alberta Time. Enable the schedule after private verification by setting the repository variable `YOUTUBE_SIX_FORMATS=true`. This also turns off the two legacy schedules and their legacy OAuth retry job. GitHub may start a slot late.
+- **Six-format production** has daily start slots at 08:00, 10:00, 12:00, 14:00, 16:00 and 18:00 Alberta Time. Enable the schedule after upload verification by setting the repository variable `YOUTUBE_SIX_FORMATS=true`. This also turns off the two legacy schedules and their legacy OAuth retry job. GitHub may start a slot late.
 - Manual production runs default to render-only. Select **Upload and verify one private YouTube video** to test Composio. Manual uploads stay private and leave episode history alone.
 - **Pipeline checks** runs Python syntax checks and offline unit tests.
 
-Scheduled uploads default to private. Only set `PRIVACY=public` after the channel owner reviews the actual rendered video and approves public release. Use the workflow's YouTube receipt to determine whether a failed run already created a private video before attempting a fresh run.
+Scheduled runs automatically make qualifying Shorts public after the quality checks pass and YouTube confirms processing and disclosure. Manual test uploads stay private. Check the YouTube receipt before retrying a failed run to see whether it already created a video.
 
 ## Story and originality safeguards
 
