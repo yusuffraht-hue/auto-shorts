@@ -18,6 +18,7 @@ class YouTubePublisher:
             raise RuntimeError("Composio API key and expected YouTube channel are required")
         self.api_key = api_key
         self.account_id = account_id
+        self.user_id = None
         self.channel_id = channel_id
 
     def _post(self, route, payload):
@@ -33,9 +34,10 @@ class YouTubePublisher:
     def _proxy(self, resource, method, query, body=None):
         payload = {
             "connected_account_id": self.account_id,
+            "user_id": self.user_id,
             "endpoint": f"{YOUTUBE}/{resource}",
             "method": method,
-            "parameters": [{"in": "query", "name": key, "value": value}
+            "parameters": [{"type": "query", "name": key, "value": value}
                            for key, value in query.items()],
         }
         if body is not None:
@@ -46,22 +48,30 @@ class YouTubePublisher:
         return result["data"]
 
     def preflight(self):
-        if not self.account_id:
-            try:
-                response = requests.get(
-                    API + "/connected_accounts",
-                    headers={"x-api-key": self.api_key},
-                    params={"toolkit_slugs": "youtube", "statuses": "ACTIVE", "limit": 2},
-                    timeout=60,
-                )
-                if not response.ok:
-                    raise RuntimeError(f"Composio account lookup returned HTTP {response.status_code}")
-                accounts = response.json()["items"]
-            except (requests.RequestException, ValueError, KeyError):
-                raise RuntimeError("Composio account lookup failed") from None
-            if len(accounts) != 1:
-                raise RuntimeError("Set COMPOSIO_YOUTUBE_ACCOUNT_ID to select the active YouTube account")
-            self.account_id = accounts[0]["id"]
+        params = {"toolkit_slugs": "youtube", "statuses": "ACTIVE", "limit": 2}
+        if self.account_id:
+            params["connected_account_ids"] = self.account_id
+        try:
+            response = requests.get(
+                API + "/connected_accounts",
+                headers={"x-api-key": self.api_key},
+                params=params,
+                timeout=60,
+            )
+            if not response.ok:
+                raise RuntimeError(f"Composio account lookup returned HTTP {response.status_code}")
+            accounts = response.json()["items"]
+        except (requests.RequestException, ValueError, KeyError):
+            raise RuntimeError("Composio account lookup failed") from None
+        if len(accounts) != 1:
+            raise RuntimeError("Set COMPOSIO_YOUTUBE_ACCOUNT_ID to select the active YouTube account")
+        account = accounts[0]
+        if self.account_id and account["id"] != self.account_id:
+            raise RuntimeError("Composio returned a different connected account")
+        self.account_id = account["id"]
+        self.user_id = account.get("user_id")
+        if not self.user_id:
+            raise RuntimeError("Composio did not return the connected account owner")
         result = self._proxy("channels", "GET", {"part": "id", "mine": "true"})
         if [item["id"] for item in result.get("items", [])] != [self.channel_id]:
             raise RuntimeError("Composio is connected to a different YouTube channel")
@@ -132,6 +142,7 @@ class YouTubePublisher:
         receipt.write_text(json.dumps({"state": "upload_attempted"}))
         result = self._post(f"/tools/execute/{UPLOAD_TOOL}", {
             "connected_account_id": self.account_id,
+            "user_id": self.user_id,
             "arguments": {**metadata["snippet"], "privacyStatus": "private", "videoFile": staged},
         })
         if result.get("successful") is not True:
