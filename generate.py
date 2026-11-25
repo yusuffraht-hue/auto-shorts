@@ -269,8 +269,9 @@ def upload_youtube(path, data, creds=None):
 
 if __name__ == "__main__":
     dry_run = os.environ.get("DRY_RUN", "false").lower() == "true"
+    queue_only = os.environ.get("YOUTUBE_QUEUE_ONLY", "false").lower() == "true"
     creds = None
-    if not dry_run:
+    if not dry_run and not queue_only:
         if not all(os.environ.get(k) for k in ("YT_CLIENT_ID", "YT_CLIENT_SECRET", "YT_REFRESH_TOKEN")):
             raise RuntimeError("YouTube credentials missing; use dry_run for render-only tests")
         creds = youtube_credentials()
@@ -287,6 +288,12 @@ if __name__ == "__main__":
     dry_run = os.environ.get("DRY_RUN", "false").lower() == "true"
     if dry_run:
         print("DRY RUN: video generated but not uploaded; history was not changed.")
+    elif queue_only:
+        manifest = {"schema": 1, "series": SERIES, "run_id": os.environ.get("GITHUB_RUN_ID"),
+                    "video": "final.mp4", "metadata": _youtube_upload_body(data),
+                    "quality_passed": data["quality_report"]["passed"], "state": "pending_upload"}
+        (OUT / "youtube-pending.json").write_text(json.dumps(manifest, indent=2))
+        print("Render queued for authorized upload; history unchanged.")
     elif all(os.environ.get(k) for k in ("YT_CLIENT_ID", "YT_CLIENT_SECRET", "YT_REFRESH_TOKEN")):
         upload_youtube(video, data, creds)
         series.save(SERIES, hist)
