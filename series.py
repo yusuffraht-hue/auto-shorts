@@ -100,7 +100,11 @@ def original_format(hist):
     return min(ORIGINAL_FORMATS, key=lambda k: recent.count(k))
 
 def build_town(hist):
-    kind = original_format(hist)
+    kind = os.getenv("ORIGINAL_FORMAT", "auto")
+    if kind == "auto":
+        kind = original_format(hist)
+    if kind not in ORIGINAL_FORMATS:
+        raise ValueError("Unknown original format: " + kind)
     recent = [e["title"] for e in hist["episodes"][-6:]]
     theme = random.choice(TOWN_THEMES)
     prompt = f"""Write an ORIGINAL "In this town..." story about ONE invented protagonist in a blocky toy-town.
