@@ -1,0 +1,71 @@
+name: Private YouTube verification for PR 16
+on:
+  push:
+    branches: [verify/private-youtube-upload-16]
+    paths: [.github/workflows/verify-private-youtube-16.yml]
+
+permissions:
+  contents: read
+  models: read
+
+concurrency:
+  group: verify-private-youtube-upload-16
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install rendering dependencies
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core blender
+      - run: pip install -r requirements.txt
+      - name: Generate, upload privately, and verify YouTube processing
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SERIES: town
+          ORIGINAL_FORMAT: town
+          USE_BLENDER: "1"
+          DRY_RUN: "false"
+          YOUTUBE_PROVIDER: composio
+          COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
+          COMPOSIO_YOUTUBE_ACCOUNT_ID: ${{ vars.COMPOSIO_YOUTUBE_ACCOUNT_ID }}
+          YOUTUBE_CHANNEL_ID: ${{ vars.YOUTUBE_CHANNEL_ID }}
+          PRIVACY: private
+          CLOUDFLARE_FREE_CONFIRMED: "false"
+        run: |
+          test "$GITHUB_RUN_ATTEMPT" -eq 1
+          python - <<'PY'
+          import json
+          import re
+          import subprocess
+          from pathlib import Path
+
+          result = subprocess.run(["python", "-u", "generate.py"], capture_output=True, text=True)
+          receipt_path = Path("out/youtube-receipt.json")
+          receipt = json.loads(receipt_path.read_text()) if receipt_path.exists() else {}
+          state = receipt.get("state")
+          if state in {"upload_attempted", "uploaded_private", "verified"}:
+              print(f"Upload receipt state: {state}", flush=True)
+          if result.returncode or state != "verified" or receipt.get("privacyStatus") != "private":
+              output = result.stdout + result.stderr
+              http = re.findall(r"(?:HTTP|status code) (\d{3})", output)
+              if http:
+                  print("Reported HTTP status: " + ", ".join(sorted(set(http))), flush=True)
+              for diagnostic in (
+                  "Set COMPOSIO_YOUTUBE_ACCOUNT_ID to select the active YouTube account",
+                  "Composio is connected to a different YouTube channel",
+                  "Composio account lookup failed",
+                  "YouTube did not confirm successful processing",
+                  "Quality gate failed",
+              ):
+                  if diagnostic.lower() in output.lower():
+                      print(diagnostic, flush=True)
+              if not state:
+                  print("The run stopped before an upload receipt was created.", flush=True)
+              raise SystemExit("Private upload verification did not pass.")
+          print("Verified: YouTube finished processing the video and its visibility is private.")
+          PY
