@@ -60,8 +60,12 @@ jobs:
               if len(items) != 1:
                   raise SystemExit("Exactly one active account or an explicit account selection is required.")
               account = items[0]["id"]
+          selected = next((item for item in accounts.get("items", []) if item["id"] == account), None)
+          if not selected or not selected.get("user_id"):
+              raise SystemExit("No owner was returned for the selected connection.")
           result = request("/tools/execute/proxy", "Composio proxy", {
               "connected_account_id": account,
+              "user_id": selected["user_id"],
               "endpoint": "https://www.googleapis.com/youtube/v3/channels",
               "method": "GET",
               "parameters": [
