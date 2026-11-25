@@ -1,0 +1,29 @@
+[
+  {
+    "id": "stone-science",
+    "work": "Dr. STONE",
+    "topic": "Why rebuilding civilization makes science the central challenge",
+    "facts": "Humans become petrified. Taiju awakens thousands of years later and reunites with Senku, who wants to restore civilization through science. Commentary may discuss why a rebuilding premise makes knowledge valuable; do not specify inventions or plot outcomes.",
+    "source": "https://www.viz.com/dr-stone",
+    "reviewed": true,
+    "visual_complexity": "low"
+  },
+  {
+    "id": "witch-learning",
+    "work": "Witch Hat Atelier",
+    "topic": "How a learnable magic system changes a fantasy premise",
+    "facts": "Coco dreams of becoming a witch. She discovers that magic can be performed using drawn seals and specialized tools, and becomes an apprentice of Qifery. Discuss learning versus innate talent as interpretation; do not invent spells or outcomes.",
+    "source": "https://tongari-anime.com/en/",
+    "reviewed": true,
+    "visual_complexity": "low"
+  },
+  {
+    "id": "spy-comedy",
+    "work": "Spy x Family",
+    "topic": "Why conflicting roles create comedy",
+    "facts": "Twilight is an undercover spy assigned to form a family. The fictional family includes a telepath and an assassin. Discuss contrasting roles as a comedy premise, without inventing specific scenes or methods.",
+    "source": "https://www.viz.com/spy-x-family",
+    "reviewed": true,
+    "visual_complexity": "low"
+  }
+]
