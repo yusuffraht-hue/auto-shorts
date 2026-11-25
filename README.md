@@ -4,27 +4,24 @@ A free-first pipeline for two separate vertical-video series. Each series has it
 
 ## Series
 
-- **In This Town** — original blocky-toy-town mysteries, strange rules, powers and recurring characters. Town scenes use CPU-rendered Blender stills when Blender is enabled; the pipeline falls back to generated images if rendering fails.
-- **Anime & Novel Stories** — unofficial recaps and clearly labelled fan what-if stories. Recaps use configured canon fact sheets and should be skipped when those notes cannot support an accurate episode. Visuals are symbolic rather than recognizable copies of characters or source artwork.
+- **Original stories** — rotating In This Town, World Simulator, Kingdom Simulator, Power Archive and Mystery Files formats.
+- **Anime & Novel Stories** — evidence-based analysis using reviewed topic records; no unsupported recaps or fan what-if episodes.
 
-The pipeline creates a script, narration, scene images, captions and a vertical MP4 using FFmpeg. It does not guarantee that every free provider will be available on every run.
+The pipeline creates a script, narration, scene images, captions and a vertical MP4 using FFmpeg.
 
 ## GitHub Actions workflows
 
-- `.github/workflows/in-this-town.yml` — scheduled daily at 15:00 UTC.
-- `.github/workflows/anime-and-novel-stories.yml` — scheduled daily at 15:30 UTC.
-- `.github/workflows/pipeline-checks.yml` — Python syntax checks and offline unit tests on pushes and pull requests.
-- `.github/workflows/blender-shots-test.yml` — manual still-image rendering test for the Blender scene renderer.
+- **Six-format render check** makes and decodes one MP4 per format and saves each video, story and probe report as a short-lived artifact.
+- **Six-format production** has daily start slots at 08:00, 10:00, 12:00, 14:00, 16:00 and 18:00 Alberta Time. Enable the schedule after upload verification by setting the repository variable `YOUTUBE_SIX_FORMATS=true`. This also turns off the two legacy schedules and their legacy OAuth retry job. GitHub may start a slot late.
+- Manual production runs default to render-only. Select **Upload and verify one private YouTube video** to test Composio. Manual uploads stay private and leave episode history alone.
+- **Pipeline checks** runs Python syntax checks and offline unit tests.
 
-For manual runs of either series workflow, the `dry_run` input defaults to **true**. Scheduled runs are not dry runs. When YouTube credentials are configured, scheduled runs can upload videos; the default upload privacy is **private**. Generated MP4s and story text are also saved as short-lived GitHub Actions artifacts.
-
-Keep videos private while reviewing them. Do not change the `PRIVACY` repository variable to `public` unless the channel owner has reviewed the actual video and explicitly chosen to publish it.
+Scheduled runs automatically make qualifying Shorts public after the quality checks pass and YouTube confirms processing and disclosure. Manual test uploads stay private. Check the YouTube receipt before retrying a failed run to see whether it already created a video.
 
 ## Story and originality safeguards
 
 - Town stories must be original and must not borrow characters or plots from existing media.
-- Anime/novel recaps require an episode-specific fact sheet in `series.RECAP_FACT_SHEETS`; a general work synopsis is not enough. This map is intentionally empty until episode/chapter facts are checked against reliable sources. Scheduled `FORMAT=auto` falls back to clearly labeled fan what-if when no sheet exists; explicit `FORMAT=recap` fails closed.
-- What-if episodes must be clearly described as speculation, not canon.
+- Analysis requires a reviewed topic record in `editorial_topics.json`; selection fails closed when no eligible topic remains. A review flag is not independent proof of accuracy. Verify source facts and rights before release.
 - Do not copy protected dialogue, prose, panels, logos or footage.
 - Each episode should have a distinct story and meaningful viewer value. Pre-render checks compare story text against the last eight episodes for near-duplicates; this heuristic cannot prove originality or monetization eligibility.
 
@@ -36,18 +33,11 @@ No paid API or subscription is required by the repository's default design, but 
 
 ## Setup
 
-For YouTube uploads, configure these repository Actions secrets:
+For the six-format workflow, set the GitHub Actions secret `COMPOSIO_API_KEY` from the free Composio project that owns the YouTube connection. Set the repository variable `YOUTUBE_CHANNEL_ID` to the intended channel ID. If the project has multiple active YouTube connections, set `COMPOSIO_YOUTUBE_ACCOUNT_ID` to choose the right account. The key must allow account lookup if needed, file staging, tool execution and proxy execution. Composio uploads the file privately first, then the workflow applies and verifies the audience and synthetic-media fields through YouTube.
 
-- `YT_CLIENT_ID`
-- `YT_CLIENT_SECRET`
-- `YT_REFRESH_TOKEN`
+The legacy manual workflows still use `YT_CLIENT_ID`, `YT_CLIENT_SECRET` and `YT_REFRESH_TOKEN`. The six-format workflow uses the GitHub Actions token for GitHub Models. Never commit keys or credentials.
 
-Optional story-provider secrets:
-
-- `GEMINI_API_KEY`
-- `GROQ_API_KEY`
-
-The GitHub Actions token is supplied to the workflow for GitHub Models access. Never commit API keys, OAuth tokens or passwords to the repository.
+Cloudflare Workers AI uses `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` only when the `CLOUDFLARE_FREE_CONFIRMED` repository variable is `true`. Enable that variable only after confirming the Cloudflare account uses Workers Free with paid overages disabled.
 
 To run offline checks locally:
 

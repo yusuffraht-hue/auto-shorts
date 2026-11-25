@@ -1,0 +1,74 @@
+name: Cloudflare smoke test
+on:
+  push:
+    branches: [integrate/production-v3]
+    paths: [.github/workflows/cloudflare-smoke.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check existing Cloudflare token and Workers subscription
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          python - <<'PY'
+          import json, os, re
+          from urllib.error import HTTPError
+          from urllib.request import Request, urlopen
+
+          account = os.environ["CLOUDFLARE_ACCOUNT_ID"]
+          token = os.environ["CLOUDFLARE_API_TOKEN"]
+          if not re.fullmatch(r"[0-9a-fA-F]{32}", account) or not token:
+              raise SystemExit("Cloudflare account ID or token is missing or malformed")
+          root = f"https://api.cloudflare.com/client/v4/accounts/{account}"
+          for resource in ("ai/models/search", "subscriptions"):
+              request = Request(f"{root}/{resource}", headers={"Authorization": f"Bearer {token}"})
+              try:
+                  with urlopen(request, timeout=20) as response:
+                      data = json.load(response)
+              except HTTPError as error:
+                  print(f"{resource}: HTTP {error.code}")
+                  continue
+              print(f"{resource}: success={data.get('success') is True}")
+              if resource == "subscriptions":
+                  for entry in data.get("result") or []:
+                      rate = entry.get("rate_plan") or {}
+                      plan = rate.get("id", "")
+                      if "worker" in plan.lower():
+                          print(f"Workers plan: {plan}, price: {entry.get('price')}")
+          PY
+  smoke:
+    if: github.event_name == 'workflow_dispatch' && vars.CLOUDFLARE_FREE_CONFIRMED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install requests pillow
+      - name: Generate one test image
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_FREE_CONFIRMED: ${{ vars.CLOUDFLARE_FREE_CONFIRMED }}
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          import cloudflare_images
+          p = Path('smoke.png')
+          assert cloudflare_images.generate('Original stylized miniature town with a blue clock tower, sunny day', p), 'Cloudflare generation failed'
+          with Image.open(p) as im:
+              im.verify()
+          print('Cloudflare image verified')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cloudflare-smoke-image
+          path: smoke.png

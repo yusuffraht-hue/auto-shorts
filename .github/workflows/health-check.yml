@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   check:
+    if: vars.YOUTUBE_SIX_FORMATS != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

@@ -1,0 +1,32 @@
+{
+  "timezone": "America/Edmonton",
+  "status": "proposed_until_scheduler_integration_and_tests",
+  "slots": [
+    {
+      "format": "world",
+      "time": "08:00"
+    },
+    {
+      "format": "kingdom",
+      "time": "10:00"
+    },
+    {
+      "format": "town",
+      "time": "12:00"
+    },
+    {
+      "format": "power",
+      "time": "14:00"
+    },
+    {
+      "format": "mystery",
+      "time": "16:00"
+    },
+    {
+      "format": "analysis",
+      "time": "18:00"
+    }
+  ],
+  "skip_if_quality_or_compliance_fails": true,
+  "allow_paid_usage": false
+}

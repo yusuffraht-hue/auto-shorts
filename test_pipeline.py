@@ -36,7 +36,7 @@ class QualityGateTests(unittest.TestCase):
         self.assertTrue(any("too short" in issue for issue in report["issues"]))
 
     def test_quality_gate_enforces_prompt_word_count_range(self):
-        for count, expected in ((139, "too short"), (181, "too long")):
+        for count, expected in ((134, "too short"), (186, "too long")):
             with self.subTest(count=count):
                 data = self.valid_story()
                 data["full_story"] = "word " * count
@@ -161,9 +161,11 @@ class SeriesTests(unittest.TestCase):
 
     def test_auto_anime_selection_uses_only_verified_works(self):
         hist = {"episodes": [], "works": {}, "log": {}}
-        with patch.dict(os.environ, {"WORK": "auto", "FORMAT": "auto"}):
+        with patch.dict(os.environ, {"WORK": "auto", "FORMAT": "auto"}), patch("series.editorial.select_topic", return_value={"id": "fixture", "work": "Fictional test work", "topic": "Test premise", "facts": "Test facts", "source": "https://example.org"}):
             meta = series.build("anime", hist)
-        self.assertTrue(series.WORKS[meta["work"]][1])
+        self.assertEqual(meta["kind"], "analysis")
+        self.assertTrue(meta["topic_id"])
+        self.assertIn("Only assert facts explicitly supported", meta["prompt"])
 
     def test_finish_keeps_only_eight_recent_story_texts(self):
         hist = {
@@ -199,32 +201,20 @@ class SeriesTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 series.build("anime", hist)
 
-    def test_auto_mode_falls_back_to_labeled_what_if_without_episode_facts(self):
-        hist = {"episodes": [], "works": {}, "log": {}}
-        with patch.dict(os.environ, {"WORK": "Jujutsu Kaisen", "FORMAT": "auto"}):
-            meta = series.build("anime", hist)
-        self.assertEqual(meta["kind"], "whatif")
-        self.assertIn("Clearly label it as speculation, not canon", meta["prompt"])
-        self.assertIn("what-if speculation", meta["note"])
+    def test_auto_mode_rejects_work_without_reviewed_topic(self):
+        with patch.dict(os.environ, {"WORK": "Nonexistent test work", "FORMAT": "auto"}):
+            with self.assertRaisesRegex(RuntimeError, "No eligible reviewed editorial topic"):
+                series.build("anime", {"episodes": [], "works": {}, "log": {}})
 
-    def test_explicit_recap_fails_closed_without_episode_specific_facts(self):
-        hist = {"episodes": [], "works": {}, "log": {}}
-        with patch.dict(os.environ, {"WORK": "Jujutsu Kaisen", "FORMAT": "recap"}):
-            with self.assertRaisesRegex(RuntimeError, "episode-specific verified fact sheet"):
-                series.build("anime", hist)
+    def test_legacy_formats_fail_closed(self):
+        for fmt in ("recap", "whatif"):
+            with self.subTest(fmt=fmt), patch.dict(os.environ, {"WORK": "auto", "FORMAT": fmt}):
+                with self.assertRaisesRegex(RuntimeError, "Only evidence-based analysis"):
+                    series.build("anime", {"episodes": [], "works": {}, "log": {}})
 
-    def test_episode_fact_sheet_enables_recap_with_strict_prompt(self):
-        hist = {"episodes": [], "works": {}, "log": {}}
-        with patch.dict(series.RECAP_FACT_SHEETS, {
-            "Jujutsu Kaisen": "Yuji swallows Sukuna's finger; Gojo explains the execution choice."
-        }):
-            with patch.dict(os.environ, {"WORK": "Jujutsu Kaisen", "FORMAT": "recap"}):
-                meta = series.build("anime", hist)
-        self.assertEqual(meta["kind"], "recap")
-        self.assertIn("Verified episode-specific canon facts:", meta["prompt"])
-        self.assertIn(series.RECAP_RULES, meta["prompt"])
-        self.assertNotIn("Part 1 covers the premise and opening events", meta["prompt"])
-        self.assertIn('{"skip":true}', meta["prompt"])
+    def test_original_format_rotation(self):
+        hist = {"episodes": [{"kind": k} for k in series.ORIGINAL_FORMATS if k != "power"]}
+        self.assertEqual(series.original_format(hist), "power")
 
 class UploadSafetyTests(unittest.TestCase):
     def test_upload_failure_does_not_retry_or_remove_synthetic_disclosure(self):

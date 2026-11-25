@@ -35,14 +35,20 @@ SHOT_COMPOSITIONS = (
 def write_script(hist):
     """Generate, quality-check and repair a story before recording it in history."""
     avoid = set()
+    last_provider_error = None
     for _ in range(5):
         meta = series.build(SERIES, hist, avoid)
         feedback = ""
-        for attempt in range(2):
-            data = json.loads(call_llm(meta["prompt"] + feedback))
+        for _ in range(2):
+            try:
+                data = json.loads(call_llm(meta["prompt"] + feedback))
+            except RuntimeError as error:
+                last_provider_error = error
+                print("Script provider failed for this draft:", error)
+                break
+            last_provider_error = None
             if data.get("skip"):
                 print("LLM skipped", meta.get("work"), "- trying another")
-                avoid.add(meta.get("work"))
                 break
             report = quality.check(data, hist)
             if report["passed"]:
@@ -53,18 +59,23 @@ def write_script(hist):
                 return data
             print("story quality gate rejected draft:", report["issues"])
             feedback = (
-                "\n\nQUALITY REPAIR: Your previous draft failed these checks: "
+                "\n\nQUALITY REPAIR: Correct the specific issues below in the previous draft. "
+                "Preserve the title, premise, source facts and scene order. "
+                "Keep fields that already pass and return the full corrected JSON.\nIssues: "
                 + "; ".join(report["issues"])
-                + ". Rewrite the entire JSON story. Follow every scene and story length rule exactly. "
-                "Do not add unsupported canon facts. Return only corrected JSON."
+                + "\nPrevious draft JSON:\n"
+                + json.dumps(data, ensure_ascii=True)
             )
-        else:
-            avoid.add(meta.get("work"))
-    raise RuntimeError("could not generate a story that passed the quality gate")
+        avoid.add(meta.get("work"))
+    raise RuntimeError("could not generate a story that passed the quality gate") from last_provider_error
 
 
 def get_image(prompt, path, seed):
     """Pollinations free tier allows 1 image per ~45s per IP, so wait out 402 limits."""
+    import cloudflare_images
+    if cloudflare_images.generate(prompt, path):
+        print("image: Cloudflare FLUX")
+        return
     base = "https://image.pollinations.ai/prompt/" + urllib.parse.quote(prompt)
     for attempt in range(12):
         model = "&model=flux" if attempt < 8 else ""
@@ -76,7 +87,7 @@ def get_image(prompt, path, seed):
             print("image:", r.status_code, len(r.content), "ok" if ok else r.text[:120])
             if ok:
                 path.write_bytes(r.content)
-                time.sleep(3)
+                time.sleep(48)
                 return
             m = re.search(r"Retry after (\d+)s", r.text)
             if m:
@@ -165,7 +176,7 @@ def make_clip(i, scene, hero, seed, style):
         img, pre = shot, "nlmeans=s=8:p=7:r=15,"  # Blender still: smooth render grain
     else:
         get_image(prompt, img, seed)
-        pre = "crop=iw:floor(ih*0.94/2)*2:0:0,"  # trim the free image service's corner watermark
+        pre = ""  # preserve provider attribution
     words = asyncio.run(tts_words(scene["line"], aud))
     dur = duration(aud) + 0.35
     if not words:
@@ -242,22 +253,43 @@ def _execute_youtube_upload(yt, path, data, media_file_upload):
     return request.execute()
 
 
-def upload_youtube(path, data):
+def youtube_credentials():
     from google.oauth2.credentials import Credentials
-    from googleapiclient.discovery import build
-    from googleapiclient.http import MediaFileUpload
+    from google.auth.transport.requests import Request
+    from google.auth.exceptions import RefreshError
     creds = Credentials(
         None, refresh_token=os.environ["YT_REFRESH_TOKEN"],
         token_uri="https://oauth2.googleapis.com/token",
         client_id=os.environ["YT_CLIENT_ID"], client_secret=os.environ["YT_CLIENT_SECRET"],
         scopes=["https://www.googleapis.com/auth/youtube.upload"])
-    yt = build("youtube", "v3", credentials=creds)
+    try:
+        creds.refresh(Request())
+    except RefreshError as exc:
+        raise RuntimeError("YouTube authorization failed; renew the refresh token before production runs") from exc
+    return creds
+
+
+def upload_youtube(path, data, creds=None):
+    from googleapiclient.discovery import build
+    from googleapiclient.http import MediaFileUpload
+    yt = build("youtube", "v3", credentials=creds or youtube_credentials())
     # Do not retry after dropping containsSyntheticMedia. Fail closed on API errors.
     res = _execute_youtube_upload(yt, path, data, MediaFileUpload)
     print("uploaded:", f"https://www.youtube.com/watch?v={res['id']}", PRIVACY)
 
 
 if __name__ == "__main__":
+    dry_run = os.environ.get("DRY_RUN", "false").lower() == "true"
+    queue_only = os.environ.get("YOUTUBE_QUEUE_ONLY", "false").lower() == "true"
+    creds = publisher = None
+    if not dry_run and not queue_only and os.environ.get("YOUTUBE_PROVIDER") == "composio":
+        from post_youtube import publisher_from_env
+        publisher = publisher_from_env()
+        publisher.preflight()
+    elif not dry_run and not queue_only:
+        if not all(os.environ.get(k) for k in ("YT_CLIENT_ID", "YT_CLIENT_SECRET", "YT_REFRESH_TOKEN")):
+            raise RuntimeError("YouTube credentials missing; use dry_run for render-only tests")
+        creds = youtube_credentials()
     hist = series.load(SERIES)
     data = write_script(hist)
     if not os.environ.get("VOICE"):
@@ -271,9 +303,15 @@ if __name__ == "__main__":
     dry_run = os.environ.get("DRY_RUN", "false").lower() == "true"
     if dry_run:
         print("DRY RUN: video generated but not uploaded; history was not changed.")
-    elif all(os.environ.get(k) for k in ("YT_CLIENT_ID", "YT_CLIENT_SECRET", "YT_REFRESH_TOKEN")):
-        upload_youtube(video, data)
+    elif queue_only:
+        manifest = {"schema": 1, "series": SERIES, "run_id": os.environ.get("GITHUB_RUN_ID"),
+                    "video": "final.mp4", "metadata": _youtube_upload_body(data),
+                    "quality_passed": data["quality_report"]["passed"], "state": "pending_upload"}
+        (OUT / "youtube-pending.json").write_text(json.dumps(manifest, indent=2))
+        print("Render queued for authorized upload; history unchanged.")
+    elif publisher is not None:
+        publisher.publish(video, _youtube_upload_body(data), OUT / "youtube-receipt.json")
         series.save(SERIES, hist)
-    else:
-        print("YouTube secrets not set; video saved at", video)
+    elif creds is not None:
+        upload_youtube(video, data, creds)
         series.save(SERIES, hist)

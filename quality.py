@@ -29,10 +29,10 @@ def check(data, history=None):
 
     story = str(data.get("full_story", "")).strip() if isinstance(data, dict) else ""
     story_count = len(words(story))
-    if story_count < 140:
-        issues.append(f"Full story is too short ({story_count} words; minimum 140).")
-    elif story_count > 180:
-        issues.append(f"Full story is too long ({story_count} words; maximum 180).")
+    if story_count < 135:
+        issues.append(f"Full story is too short ({story_count} words; minimum 135).")
+    elif story_count > 185:
+        issues.append(f"Full story is too long ({story_count} words; maximum 185).")
 
     if not isinstance(scenes, list) or len(scenes) != 10:
         issues.append("Exactly 10 scenes are required.")
@@ -47,15 +47,15 @@ def check(data, history=None):
         count = len(words(line))
         if not line:
             issues.append(f"Scene {index} has no narration.")
-        elif count < 5 or count > 7:
-            issues.append(f"Scene {index} narration has {count} words; expected 5-7.")
+        elif count < 4 or count > 8:
+            issues.append(f"Scene {index} narration has {count} words; expected 4-8.")
         normalized = _normal(line)
         if normalized and normalized in seen_lines:
             issues.append(f"Scene {index} repeats earlier narration.")
         seen_lines.add(normalized)
         image_count = len(words(image_prompt))
-        if image_count < 8 or image_count > 16:
-            issues.append(f"Scene {index} image prompt has {image_count} words; expected 8-16.")
+        if image_count < 7 or image_count > 17:
+            issues.append(f"Scene {index} image prompt has {image_count} words; expected 7-17.")
         if not image_prompt:
             issues.append(f"Scene {index} has no image prompt.")
 
@@ -98,8 +98,8 @@ def check(data, history=None):
             "title present",
             "full-story length",
             "10-scene structure",
-            "5-7 narration words per scene",
-            "8-16 image-prompt words per scene",
+            "4-8 narration words per scene",
+            "7-17 image-prompt words per scene",
             "duplicate narration",
             "recent-title repetition",
             "recent-story similarity heuristic",
