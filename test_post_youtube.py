@@ -62,6 +62,12 @@ class PublisherTests(unittest.TestCase):
         self.assertEqual(sleep.call_count, 2)
 
     def test_wrong_channel_fails_preflight(self):
-        with patch.object(self.publisher, "_proxy", return_value={"items": [{"id": "other"}]}):
+        with (patch("post_youtube.requests.get") as get,
+              patch.object(self.publisher, "_proxy", return_value={"items": [{"id": "other"}]})):
+            get.return_value.ok = True
+            get.return_value.json.return_value = {
+                "items": [{"id": "account", "user_id": "owner"}],
+            }
             with self.assertRaisesRegex(RuntimeError, "different YouTube channel"):
                 self.publisher.preflight()
+        self.assertEqual(self.publisher.user_id, "owner")
