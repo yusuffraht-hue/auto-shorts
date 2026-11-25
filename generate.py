@@ -35,14 +35,20 @@ SHOT_COMPOSITIONS = (
 def write_script(hist):
     """Generate, quality-check and repair a story before recording it in history."""
     avoid = set()
+    last_provider_error = None
     for _ in range(5):
         meta = series.build(SERIES, hist, avoid)
         feedback = ""
-        for attempt in range(2):
-            data = json.loads(call_llm(meta["prompt"] + feedback))
+        for _ in range(2):
+            try:
+                data = json.loads(call_llm(meta["prompt"] + feedback))
+            except RuntimeError as error:
+                last_provider_error = error
+                print("Script provider failed for this draft:", error)
+                break
+            last_provider_error = None
             if data.get("skip"):
                 print("LLM skipped", meta.get("work"), "- trying another")
-                avoid.add(meta.get("work"))
                 break
             report = quality.check(data, hist)
             if report["passed"]:
@@ -53,14 +59,15 @@ def write_script(hist):
                 return data
             print("story quality gate rejected draft:", report["issues"])
             feedback = (
-                "\n\nQUALITY REPAIR: Your previous draft failed these checks: "
+                "\n\nQUALITY REPAIR: Correct the specific issues below in the previous draft. "
+                "Preserve the title, premise, source facts and scene order. "
+                "Keep fields that already pass and return the full corrected JSON.\nIssues: "
                 + "; ".join(report["issues"])
-                + ". Rewrite the entire JSON story. Follow every scene and story length rule exactly. "
-                "Do not add unsupported canon facts. Return only corrected JSON."
+                + "\nPrevious draft JSON:\n"
+                + json.dumps(data, ensure_ascii=True)
             )
-        else:
-            avoid.add(meta.get("work"))
-    raise RuntimeError("could not generate a story that passed the quality gate")
+        avoid.add(meta.get("work"))
+    raise RuntimeError("could not generate a story that passed the quality gate") from last_provider_error
 
 
 def get_image(prompt, path, seed):
