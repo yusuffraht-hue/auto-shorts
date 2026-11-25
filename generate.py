@@ -65,6 +65,10 @@ def write_script(hist):
 
 def get_image(prompt, path, seed):
     """Pollinations free tier allows 1 image per ~45s per IP, so wait out 402 limits."""
+    import cloudflare_images
+    if cloudflare_images.generate(prompt, path):
+        print("image: Cloudflare FLUX")
+        return
     base = "https://image.pollinations.ai/prompt/" + urllib.parse.quote(prompt)
     for attempt in range(12):
         model = "&model=flux" if attempt < 8 else ""
