@@ -4,8 +4,10 @@ A free-first pipeline for two separate vertical-video series. Each series has it
 
 ## Series
 
-- **In This Town** — original blocky-toy-town mysteries, strange rules, powers and recurring characters. Town scenes use CPU-rendered Blender stills when Blender is enabled; the pipeline falls back to generated images if rendering fails.
-- **Anime & Novel Stories** — unofficial recaps and clearly labelled fan what-if stories. Recaps use configured canon fact sheets and should be skipped when those notes cannot support an accurate episode. Visuals are symbolic rather than recognizable copies of characters or source artwork.
+- **Original stories** — rotating In This Town, World Simulator, Kingdom Simulator, Power Archive and Mystery Files formats.
+- **Anime & Novel Stories** — evidence-based analysis using reviewed topic records; no unsupported recaps or fan what-if episodes.
+
+**Development status:** These formats are implemented on the editorial development branch, not yet deployed to main. Six daily candidates and automatic public publishing remain integration targets.
 
 The pipeline creates a script, narration, scene images, captions and a vertical MP4 using FFmpeg. It does not guarantee that every free provider will be available on every run.
 
@@ -23,8 +25,7 @@ Keep videos private while reviewing them. Do not change the `PRIVACY` repository
 ## Story and originality safeguards
 
 - Town stories must be original and must not borrow characters or plots from existing media.
-- Anime/novel recaps require an episode-specific fact sheet in `series.RECAP_FACT_SHEETS`; a general work synopsis is not enough. This map is intentionally empty until episode/chapter facts are checked against reliable sources. Scheduled `FORMAT=auto` falls back to clearly labeled fan what-if when no sheet exists; explicit `FORMAT=recap` fails closed.
-- What-if episodes must be clearly described as speculation, not canon.
+- Analysis requires a reviewed topic record in `editorial_topics.json`; selection fails closed when no eligible topic remains. A review flag is not independent proof of accuracy. Verify source facts and rights before release.
 - Do not copy protected dialogue, prose, panels, logos or footage.
 - Each episode should have a distinct story and meaningful viewer value. Pre-render checks compare story text against the last eight episodes for near-duplicates; this heuristic cannot prove originality or monetization eligibility.
 
