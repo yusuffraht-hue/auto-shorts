@@ -1,4 +1,5 @@
 name: Private YouTube verification for PR 16
+# Recheck using the connected account owner after Google authorization.
 on:
   push:
     branches: [verify/private-youtube-upload-16]
@@ -59,11 +60,15 @@ jobs:
                   "Set COMPOSIO_YOUTUBE_ACCOUNT_ID to select the active YouTube account",
                   "Composio is connected to a different YouTube channel",
                   "Composio account lookup failed",
+                  "Composio did not return the connected account owner",
                   "YouTube did not confirm successful processing",
                   "Quality gate failed",
               ):
                   if diagnostic.lower() in output.lower():
                       print(diagnostic, flush=True)
+              for stage in ("Composio /tools/execute/proxy", "Composio /files/upload/request", "Composio /tools/execute/YOUTUBE_MULTIPART_UPLOAD_VIDEO", "YouTube GET channels", "YouTube PUT videos", "YouTube GET videos", "No LLM provider returned valid JSON"):
+                  if stage in output:
+                      print("Failed stage: " + stage, flush=True)
               if not state:
                   print("The run stopped before an upload receipt was created.", flush=True)
               raise SystemExit("Private upload verification did not pass.")
