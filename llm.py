@@ -188,7 +188,8 @@ def _pollinations(prompt):
             time.sleep(delay)
         r = requests.post(
             "https://text.pollinations.ai/openai",
-            json={"model": "openai-fast", "max_tokens": 12000, "seed": random.randint(1, 10**8),
+            json={"model": "openai-fast", "max_tokens": 12000, "reasoning_effort": "none",
+                  "seed": random.randint(1, 10**8),
                   "messages": [{"role": "user", "content": prompt}]}, timeout=180)
         print("llm: pollinations", r.status_code, repr(r.text[:160]))
         if r.status_code == 200:
