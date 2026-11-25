@@ -1,0 +1,71 @@
+name: Diagnose Composio authentication for PR 16
+on:
+  push:
+    branches: [verify/private-youtube-upload-16]
+    paths: [.github/workflows/verify-composio-auth-16.yml]
+
+permissions: {}
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check project key and YouTube connection without uploading
+        env:
+          COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
+          COMPOSIO_YOUTUBE_ACCOUNT_ID: ${{ vars.COMPOSIO_YOUTUBE_ACCOUNT_ID }}
+          YOUTUBE_CHANNEL_ID: ${{ vars.YOUTUBE_CHANNEL_ID }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from urllib.error import HTTPError
+          from urllib.request import Request, urlopen
+
+          key = os.environ["COMPOSIO_API_KEY"]
+          if not key or key == "1":
+              raise SystemExit("GitHub still has an empty key or the placeholder.")
+          if key != key.strip():
+              raise SystemExit("The GitHub secret has leading or trailing whitespace.")
+          if "\n" in key or "\r" in key:
+              raise SystemExit("The GitHub secret contains a line break.")
+
+          api = "https://backend.composio.dev/api/v3.1"
+          def request(route, label, payload=None):
+              data = json.dumps(payload).encode() if payload is not None else None
+              try:
+                  with urlopen(Request(api + route, data=data, headers={
+                      "x-api-key": key, "Content-Type": "application/json",
+                  }), timeout=25) as response:
+                      print(f"{label}: HTTP {response.status}", flush=True)
+                      return json.load(response)
+              except HTTPError as error:
+                  raise SystemExit(f"{label}: HTTP {error.code}") from None
+              except (OSError, ValueError):
+                  raise SystemExit(f"{label}: request failed") from None
+
+          accounts = request("/connected_accounts?toolkit_slugs=youtube&statuses=ACTIVE&limit=2", "Composio project key")
+          account = os.environ["COMPOSIO_YOUTUBE_ACCOUNT_ID"]
+          if not account:
+              items = accounts.get("items") or []
+              print(f"Active YouTube accounts found: {len(items)}", flush=True)
+              if len(items) != 1:
+                  raise SystemExit("Exactly one active account or an explicit account selection is required.")
+              account = items[0]["id"]
+          result = request("/tools/execute/proxy", "Composio proxy", {
+              "connected_account_id": account,
+              "endpoint": "https://www.googleapis.com/youtube/v3/channels",
+              "method": "GET",
+              "parameters": [
+                  {"in": "query", "name": "part", "value": "id"},
+                  {"in": "query", "name": "mine", "value": "true"},
+              ],
+          })
+          if result.get("status") != 200:
+              status = result.get("status")
+              raise SystemExit(f"YouTube account authorization: HTTP {status}" if isinstance(status, int) else "YouTube account authorization failed")
+          if [item.get("id") for item in result.get("data", {}).get("items", [])] != [os.environ["YOUTUBE_CHANNEL_ID"]]:
+              raise SystemExit("The connected YouTube channel differs from the configured channel.")
+          print("The project key and intended YouTube channel are verified.")
+          PY
