@@ -1,0 +1,93 @@
+name: Verify one private upload from a checked Short
+on:
+  push:
+    branches: [verify/private-youtube-upload-16]
+    paths: [.github/workflows/verify-upload-from-render-16.yml]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: auto-shorts-one-off-upload-verification
+
+jobs:
+  verify:
+    if: github.event.head_commit.message == 'Run Auto Shorts private upload canary'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: 45646459316
+          name: render-town
+          path: checked-short
+      - run: pip install requests
+      - name: Upload once and verify private visibility, disclosure, and processing
+        env:
+          COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
+          COMPOSIO_YOUTUBE_ACCOUNT_ID: ${{ vars.COMPOSIO_YOUTUBE_ACCOUNT_ID }}
+          YOUTUBE_CHANNEL_ID: ${{ vars.YOUTUBE_CHANNEL_ID }}
+        run: |
+          test "$GITHUB_RUN_ATTEMPT" -eq 1
+          python - <<'PY'
+          import contextlib
+          import io
+          import json
+          import re
+          from pathlib import Path
+          from post_youtube import publisher_from_env
+
+          source = Path("checked-short")
+          report = json.loads((source / "quality-report.json").read_text())
+          media = json.loads((source / "media-report.json").read_text())
+          video = next(stream for stream in media["streams"] if stream["codec_type"] == "video")
+          if report.get("passed") is not True or video["height"] <= video["width"]:
+              raise SystemExit("The Short did not pass the render checks.")
+          if not any(stream["codec_type"] == "audio" for stream in media["streams"]):
+              raise SystemExit("The Short has no audio.")
+          if not 0 < float(media["format"]["duration"]) <= 180:
+              raise SystemExit("The Short duration is invalid.")
+          title = (source / "story.txt").read_text().splitlines()[0]
+          receipt_path = Path("private-upload-receipt.json")
+          metadata = {
+              "snippet": {
+                  "title": title[:80] + " #Shorts",
+                  "description": "Private Auto Shorts verification. AI-generated visuals and voice.",
+                  "categoryId": "24",
+              },
+              "status": {
+                  "privacyStatus": "private",
+                  "containsSyntheticMedia": True,
+                  "selfDeclaredMadeForKids": False,
+              },
+          }
+          stage = "channel verification"
+          try:
+              publisher = publisher_from_env()
+              publisher.preflight()
+              stage = "private upload and processing"
+              with contextlib.redirect_stdout(io.StringIO()):
+                  publisher.publish(source / "final.mp4", metadata, receipt_path)
+          except Exception as error:
+              response = str(error)
+              match = re.search(r"(?:HTTP|status) (\d{3})", response)
+              print(f"Failed stage: {stage}")
+              if match:
+                  print(f"HTTP status: {match.group(1)}")
+              if receipt_path.exists():
+                  receipt = json.loads(receipt_path.read_text())
+                  print(f"Receipt state: {receipt.get('state')}")
+              else:
+                  print("No upload was attempted.")
+              raise SystemExit(1) from None
+          receipt = json.loads(receipt_path.read_text())
+          if receipt.get("state") != "verified" or receipt.get("privacyStatus") != "private":
+              raise SystemExit("YouTube verification did not confirm private visibility.")
+          print("Verified one private Short with processing and disclosure confirmed.")
+          PY
