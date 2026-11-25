@@ -1,0 +1,64 @@
+name: Six-format render check
+
+on:
+  push:
+    branches: [integrate/production-v3]
+    paths: [.github/workflows/six-format-render-check.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  models: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        format: [world, kingdom, town, power, mystery, analysis]
+    env:
+      DRY_RUN: "true"
+      SERIES: ${{ matrix.format == 'analysis' && 'anime' || 'town' }}
+      ORIGINAL_FORMAT: ${{ matrix.format }}
+      USE_BLENDER: ${{ matrix.format == 'analysis' && '0' || '1' }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core blender
+      - run: pip install -r requirements.txt
+      - name: Render and check the MP4
+        run: |
+          python generate.py
+          python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+
+          probe = json.loads(subprocess.check_output([
+              "ffprobe", "-v", "error", "-show_streams", "-show_format",
+              "-of", "json", "out/final.mp4",
+          ]))
+          video = next(s for s in probe["streams"] if s["codec_type"] == "video")
+          assert video["height"] > video["width"], "Expected vertical video"
+          assert any(s["codec_type"] == "audio" for s in probe["streams"]), "Missing audio"
+          assert 0 < float(probe["format"]["duration"]) <= 180, "Invalid Short duration"
+          assert json.loads(Path("out/quality-report.json").read_text())["passed"]
+          Path("out/media-report.json").write_text(json.dumps(probe, indent=2))
+          PY
+          ffmpeg -v error -xerror -i out/final.mp4 -f null -
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: render-${{ matrix.format }}
+          path: |
+            out/final.mp4
+            out/story.txt
+            out/quality-report.json
+            out/media-report.json
+          retention-days: 7
+          if-no-files-found: ignore
