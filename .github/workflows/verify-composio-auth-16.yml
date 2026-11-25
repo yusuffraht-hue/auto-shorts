@@ -75,6 +75,18 @@ jobs:
           })
           if result.get("status") != 200:
               status = result.get("status")
+              error = result.get("data") or {}
+              if isinstance(error, str):
+                  try:
+                      error = json.loads(error)
+                  except ValueError:
+                      error = {}
+              detail = error.get("error") or {} if isinstance(error, dict) else {}
+              if isinstance(detail, dict):
+                  for entry in (detail.get("errors") or []) + (detail.get("details") or []):
+                      reason = entry.get("reason") if isinstance(entry, dict) else None
+                      if isinstance(reason, str) and reason.replace("_", "").isalnum() and len(reason) < 60:
+                          print("YouTube error reason: " + reason, flush=True)
               raise SystemExit(f"YouTube account authorization: HTTP {status}" if isinstance(status, int) else "YouTube account authorization failed")
           if [item.get("id") for item in result.get("data", {}).get("items", [])] != [os.environ["YOUTUBE_CHANNEL_ID"]]:
               raise SystemExit("The connected YouTube channel differs from the configured channel.")
