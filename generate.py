@@ -76,7 +76,7 @@ def get_image(prompt, path, seed):
             print("image:", r.status_code, len(r.content), "ok" if ok else r.text[:120])
             if ok:
                 path.write_bytes(r.content)
-                time.sleep(3)
+                time.sleep(48)
                 return
             m = re.search(r"Retry after (\d+)s", r.text)
             if m:
@@ -165,7 +165,7 @@ def make_clip(i, scene, hero, seed, style):
         img, pre = shot, "nlmeans=s=8:p=7:r=15,"  # Blender still: smooth render grain
     else:
         get_image(prompt, img, seed)
-        pre = "crop=iw:floor(ih*0.94/2)*2:0:0,"  # trim the free image service's corner watermark
+        pre = ""  # preserve provider attribution
     words = asyncio.run(tts_words(scene["line"], aud))
     dur = duration(aud) + 0.35
     if not words:
@@ -242,22 +242,38 @@ def _execute_youtube_upload(yt, path, data, media_file_upload):
     return request.execute()
 
 
-def upload_youtube(path, data):
+def youtube_credentials():
     from google.oauth2.credentials import Credentials
-    from googleapiclient.discovery import build
-    from googleapiclient.http import MediaFileUpload
+    from google.auth.transport.requests import Request
+    from google.auth.exceptions import RefreshError
     creds = Credentials(
         None, refresh_token=os.environ["YT_REFRESH_TOKEN"],
         token_uri="https://oauth2.googleapis.com/token",
         client_id=os.environ["YT_CLIENT_ID"], client_secret=os.environ["YT_CLIENT_SECRET"],
         scopes=["https://www.googleapis.com/auth/youtube.upload"])
-    yt = build("youtube", "v3", credentials=creds)
+    try:
+        creds.refresh(Request())
+    except RefreshError as exc:
+        raise RuntimeError("YouTube authorization failed; renew the refresh token before production runs") from exc
+    return creds
+
+
+def upload_youtube(path, data, creds=None):
+    from googleapiclient.discovery import build
+    from googleapiclient.http import MediaFileUpload
+    yt = build("youtube", "v3", credentials=creds or youtube_credentials())
     # Do not retry after dropping containsSyntheticMedia. Fail closed on API errors.
     res = _execute_youtube_upload(yt, path, data, MediaFileUpload)
     print("uploaded:", f"https://www.youtube.com/watch?v={res['id']}", PRIVACY)
 
 
 if __name__ == "__main__":
+    dry_run = os.environ.get("DRY_RUN", "false").lower() == "true"
+    creds = None
+    if not dry_run:
+        if not all(os.environ.get(k) for k in ("YT_CLIENT_ID", "YT_CLIENT_SECRET", "YT_REFRESH_TOKEN")):
+            raise RuntimeError("YouTube credentials missing; use dry_run for render-only tests")
+        creds = youtube_credentials()
     hist = series.load(SERIES)
     data = write_script(hist)
     if not os.environ.get("VOICE"):
@@ -272,7 +288,7 @@ if __name__ == "__main__":
     if dry_run:
         print("DRY RUN: video generated but not uploaded; history was not changed.")
     elif all(os.environ.get(k) for k in ("YT_CLIENT_ID", "YT_CLIENT_SECRET", "YT_REFRESH_TOKEN")):
-        upload_youtube(video, data)
+        upload_youtube(video, data, creds)
         series.save(SERIES, hist)
     else:
         print("YouTube secrets not set; video saved at", video)
