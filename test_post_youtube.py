@@ -47,6 +47,20 @@ class PublisherTests(unittest.TestCase):
         proxy.assert_called_once()
         self.assertEqual(json.loads(self.receipt.read_text())["state"], "uploaded_private")
 
+    def test_waits_for_private_video_to_finish_processing(self):
+        video = {"snippet": {"channelId": "expected"},
+                 "status": {"privacyStatus": "private", "selfDeclaredMadeForKids": False}}
+        expected = {**self.status, "privacyStatus": "private"}
+        with (patch.object(self.publisher, "_proxy", side_effect=[
+                {"items": []},
+                {"items": [{**video, "processingDetails": {"processingStatus": "processing"}}]},
+                {"items": [{**video, "processingDetails": {"processingStatus": "succeeded"}}]},
+              ]) as proxy,
+              patch("post_youtube.time.sleep") as sleep):
+            self.publisher._verify("video", expected)
+        self.assertEqual(proxy.call_count, 3)
+        self.assertEqual(sleep.call_count, 2)
+
     def test_wrong_channel_fails_preflight(self):
         with patch.object(self.publisher, "_proxy", return_value={"items": [{"id": "other"}]}):
             with self.assertRaisesRegex(RuntimeError, "different YouTube channel"):

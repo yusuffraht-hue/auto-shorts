@@ -2,6 +2,7 @@
 import hashlib
 import json
 import os
+import time
 from urllib.parse import urlsplit
 
 import requests
@@ -95,18 +96,28 @@ class YouTubePublisher:
         self._verify(video_id, expected)
 
     def _verify(self, video_id, expected):
-        result = self._proxy("videos", "GET", {"part": "snippet,status", "id": video_id})
-        items = result.get("items", [])
-        if len(items) != 1 or items[0]["snippet"]["channelId"] != self.channel_id:
-            raise RuntimeError(f"YouTube could not verify video {video_id} on the expected channel")
-        status = items[0]["status"]
-        # The write response echoes the synthetic disclosure. A subsequent videos.list
-        # can omit that field, but any value it does return must agree with the write.
-        if any(status.get(key) != value for key, value in expected.items()
-               if key != "containsSyntheticMedia" or key in status):
-            raise RuntimeError(f"YouTube returned unexpected visibility or disclosure for {video_id}")
-        if status.get("uploadStatus") in {"failed", "rejected", "deleted"}:
-            raise RuntimeError(f"YouTube rejected video {video_id}")
+        query = {"part": "snippet,status,processingDetails", "id": video_id}
+        for attempt in range(12):
+            result = self._proxy("videos", "GET", query)
+            items = result.get("items", [])
+            if items:
+                if len(items) != 1 or items[0]["snippet"]["channelId"] != self.channel_id:
+                    raise RuntimeError(f"YouTube returned {video_id} on an unexpected channel")
+                video = items[0]
+                status = video["status"]
+                # videos.list can omit synthetic disclosure, which the write must confirm.
+                if any(status.get(key) != value for key, value in expected.items()
+                       if key != "containsSyntheticMedia" or key in status):
+                    raise RuntimeError(f"YouTube returned unexpected visibility or disclosure for {video_id}")
+                processing = video.get("processingDetails", {}).get("processingStatus")
+                if (status.get("uploadStatus") in {"failed", "rejected", "deleted"}
+                        or processing in {"failed", "terminated"}):
+                    raise RuntimeError(f"YouTube rejected video {video_id}")
+                if status.get("uploadStatus") == "processed" or processing == "succeeded":
+                    return
+            if attempt < 11:
+                time.sleep(10)
+        raise RuntimeError(f"YouTube did not confirm successful processing for {video_id}")
 
     def publish(self, path, metadata, receipt):
         requested = metadata["status"]
