@@ -161,7 +161,7 @@ class SeriesTests(unittest.TestCase):
 
     def test_auto_anime_selection_uses_only_verified_works(self):
         hist = {"episodes": [], "works": {}, "log": {}}
-        with patch.dict(os.environ, {"WORK": "auto", "FORMAT": "auto"}):
+        with patch.dict(os.environ, {"WORK": "auto", "FORMAT": "auto"}), patch("series.editorial.select_topic", return_value={"id": "fixture", "work": "Fictional test work", "topic": "Test premise", "facts": "Test facts", "source": "https://example.org"}):
             meta = series.build("anime", hist)
         self.assertEqual(meta["kind"], "analysis")
         self.assertTrue(meta["topic_id"])
