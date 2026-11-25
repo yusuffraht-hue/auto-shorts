@@ -167,7 +167,8 @@ def _github(prompt):
         "https://models.github.ai/inference/chat/completions",
         headers={"Authorization": f"Bearer {GH}", "Accept": "application/json",
                  "Content-Type": "application/json"},
-        json={"model": "openai/gpt-4o-mini", "max_tokens": 10000,
+        json={"model": "openai/gpt-4.1-mini", "max_tokens": 3000,
+              "response_format": {"type": "json_object"},
               "messages": [{"role": "user", "content": prompt}]}, timeout=120)
     print("llm: github", r.status_code, repr(r.text[:160]))
     if r.status_code == 200:
