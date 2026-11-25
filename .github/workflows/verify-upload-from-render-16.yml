@@ -13,7 +13,6 @@ concurrency:
 
 jobs:
   verify:
-    if: github.event.head_commit.message == 'Run Auto Shorts private upload canary'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -30,7 +29,8 @@ jobs:
       - run: pip install requests
       - name: Upload once and verify private visibility, disclosure, and processing
         env:
-          COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
+          RUN_PRIVATE_UPLOAD: ${{ github.event.head_commit.message == 'Run Auto Shorts private upload canary' }}
+          COMPOSIO_API_KEY: ${{ github.event.head_commit.message == 'Run Auto Shorts private upload canary' && secrets.COMPOSIO_API_KEY || '' }}
           COMPOSIO_YOUTUBE_ACCOUNT_ID: ${{ vars.COMPOSIO_YOUTUBE_ACCOUNT_ID }}
           YOUTUBE_CHANNEL_ID: ${{ vars.YOUTUBE_CHANNEL_ID }}
         run: |
@@ -54,6 +54,11 @@ jobs:
           if not 0 < float(media["format"]["duration"]) <= 180:
               raise SystemExit("The Short duration is invalid.")
           title = (source / "story.txt").read_text().splitlines()[0]
+          if not (source / "final.mp4").is_file() or not title.strip():
+              raise SystemExit("The checked artifact is missing the Short or its title.")
+          if os.environ["RUN_PRIVATE_UPLOAD"] != "true":
+              print("The checked Short is ready for the private upload test.")
+              raise SystemExit(0)
           receipt_path = Path("private-upload-receipt.json")
           metadata = {
               "snippet": {
