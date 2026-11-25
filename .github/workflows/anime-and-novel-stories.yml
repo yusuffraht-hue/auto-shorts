@@ -55,6 +55,9 @@ jobs:
         run: python generate.py
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_FREE_CONFIRMED: ${{ vars.CLOUDFLARE_FREE_CONFIRMED || 'false' }}
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
           YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
           YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
@@ -62,6 +65,7 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           PRIVACY: ${{ vars.PRIVACY || 'private' }}
+          YOUTUBE_QUEUE_ONLY: ${{ vars.YOUTUBE_QUEUE_ONLY || 'false' }}
           DRY_RUN: ${{ inputs.dry_run || false }}
           FORMAT: ${{ inputs.format || 'auto' }}
           WORK: ${{ inputs.work || 'auto' }}
@@ -73,10 +77,11 @@ jobs:
             out/final.mp4
             out/story.txt
             out/quality-report.json
+            out/youtube-pending.json
           retention-days: 7
           if-no-files-found: ignore
       - name: Save episode history
-        if: success()
+        if: ${{ success() && vars.YOUTUBE_QUEUE_ONLY != 'true' }}
         run: |
           git config user.name "auto-shorts-bot"
           git config user.email "bot@users.noreply.github.com"
@@ -85,7 +90,7 @@ jobs:
           git commit -m "history: ${SERIES}"
           for i in 1 2 3 4; do git pull --rebase origin main && git push origin HEAD:main && break || sleep 5; done
       - name: Host the video for Instagram
-        if: ${{ success() && !inputs.dry_run && env.COMPOSIO_API_KEY != '' && vars.INSTAGRAM_POST != '0' }}
+        if: ${{ success() && vars.YOUTUBE_QUEUE_ONLY != 'true' && !inputs.dry_run && env.COMPOSIO_API_KEY != '' && vars.INSTAGRAM_POST != '0' }}
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
