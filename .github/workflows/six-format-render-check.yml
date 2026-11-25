@@ -7,6 +7,7 @@ on:
       - .github/workflows/six-format-render-check.yml
       - generate.py
       - llm.py
+      - quality.py
       - series.py
       - editorial_topics.json
   workflow_dispatch:

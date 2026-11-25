@@ -205,8 +205,8 @@ def _pollinations(prompt):
             wait = min(int(retry.group(1)) + 3, 90) if retry else 48
             _pollinations_available_at = time.monotonic() + wait
         elif r.status_code == 400 and "output token limit" in r.text.lower():
-            # Prompt is already deliberately compact; don't hammer the same rejected request.
-            break
+            # This can be transient even with reasoning disabled. Keep retries paced and bounded.
+            _pollinations_available_at = time.monotonic() + 48
         else:
             time.sleep(8)
 

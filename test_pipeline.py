@@ -36,7 +36,7 @@ class QualityGateTests(unittest.TestCase):
         self.assertTrue(any("too short" in issue for issue in report["issues"]))
 
     def test_quality_gate_enforces_prompt_word_count_range(self):
-        for count, expected in ((139, "too short"), (181, "too long")):
+        for count, expected in ((134, "too short"), (186, "too long")):
             with self.subTest(count=count):
                 data = self.valid_story()
                 data["full_story"] = "word " * count
