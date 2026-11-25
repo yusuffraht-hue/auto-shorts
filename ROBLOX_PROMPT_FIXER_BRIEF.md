@@ -36,3 +36,10 @@ CTA: try your idea, report builder and playable result without personal details.
 - Hold draft until review and verified link; no automatic upload for this experiment.
 - Measure views, retention, visits, copies, reported attempts and playable outcomes separately. Most weight on actual playable outcomes; self-reports labeled. No invented attribution or guaranteed revenue.
 - Initial review after 7 days from approved launch; low traffic is inconclusive. No spending, paid trials or overages. Follow platform rules and age/guardian requirements.
+
+## Baseline recovery and test protocol
+Prior conversation confirms original opening: “Make a single-player 2D Roblox game called Grow Your Own Planet…” and features Pond/Hot Spring, two barren plots, Grove, Rain/Wind, three endings, New Planet; no currency, timers, combat, shops or multiplayer. Original screenshot was described as gray planet with labeled circles; original image bytes and full prompt not recovered. Water counter in v1 is an intentional new resource mechanic, not a feature of original. This is a comparison of prompt approaches, not an isolated causal test.
+
+If exact prompt cannot be recovered, label baseline as reconstructed: Make a single-player 2D Roblox game called Grow Your Own Planet. Start with a barren planet and two plots. Include Pond or Hot Spring, Grove, Rain or Wind choices, three endings and New Planet restart. No currency, timers, combat, shops or multiplayer. This reconstruction omits unknown details and must not be presented as verbatim original.
+
+Mobile recording: open fresh project, paste original (or labeled reconstruction), record 15 seconds of first play; repeat with revised prompt in same builder/settings. Record whether first action is understood, reward achieved, transformation visible and reset works. Save clips as baseline.mp4 and revised.mp4. Record website as site.mp4 after URL verification. No public upload. All observations pending.
