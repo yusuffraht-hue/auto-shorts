@@ -3,6 +3,7 @@ import argparse
 import base64
 import hashlib
 import json
+import os
 import re
 import subprocess
 from datetime import datetime, timedelta, timezone
@@ -24,7 +25,11 @@ DEMOS = {
 
 
 def fetch(url):
-    with urlopen(Request(url, headers={"Cache-Control": "no-cache"}), timeout=20) as response:
+    headers = {"Cache-Control": "no-cache"}
+    token = os.environ.get("GITHUB_TOKEN")
+    if token and url.startswith(SOURCE_API):
+        headers["Authorization"] = f"Bearer {token}"
+    with urlopen(Request(url, headers=headers), timeout=20) as response:
         if response.url != url:
             raise ValueError("Unexpected redirect")
         data = response.read(1_000_001)
