@@ -1,6 +1,7 @@
 import json
 import os
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 import generate
@@ -70,20 +71,27 @@ class QualityGateTests(unittest.TestCase):
 
 
 class EditorialReserveTests(unittest.TestCase):
-    def test_provider_failure_uses_a_distinct_quality_checked_reserve_once_per_format(self):
+    def test_provider_failure_uses_each_distinct_reviewed_script_once(self):
+        reserves = json.loads(Path(__file__).with_name("editorial_reserve.json").read_text())
         for kind in (*series.ORIGINAL_FORMATS, "analysis"):
             with self.subTest(format=kind):
                 history = {"episodes": [], "works": {}, "log": {}}
+                scripts = reserves[kind]
+                if isinstance(scripts, dict):
+                    scripts = [scripts]
+                titles = [script["title"] for script in scripts]
+                self.assertEqual(len(titles), len(set(titles)))
                 with (patch.object(generate, "SERIES", "anime" if kind == "analysis" else "town"),
                       patch.dict(os.environ, {"ORIGINAL_FORMAT": kind, "FORMAT": "auto", "WORK": "auto"}),
                       patch.object(generate, "call_llm", side_effect=RuntimeError("provider unavailable"))):
-                    story = generate.write_script(history)
-                    self.assertTrue(story["quality_report"]["passed"])
-                    self.assertEqual(history["episodes"][0]["kind"], kind)
-                    self.assertIn("reserve_id", history["episodes"][0])
+                    for title in titles:
+                        story = generate.write_script(history)
+                        self.assertTrue(story["quality_report"]["passed"])
+                        self.assertEqual(history["episodes"][-1]["kind"], kind)
+                        self.assertEqual(history["episodes"][-1]["reserve_id"], title)
                     with self.assertRaisesRegex(RuntimeError, "quality gate"):
                         generate.write_script(history)
-                    self.assertEqual(len(history["episodes"]), 1)
+                    self.assertEqual(len(history["episodes"]), len(titles))
 
 
 class LLMValidationTests(unittest.TestCase):
