@@ -46,6 +46,12 @@ python -m compileall -q .
 python -m unittest discover -v
 ```
 
+## Operating the schedule
+
+- [Recovery and rollback](RECOVERY.md) explains how to reconcile failed uploads and restore service.
+- **Shorts daily health** reports missing and failed scheduled runs in its GitHub Actions summary. Scheduled production retains publishing outcomes in `history/publishing/`.
+- [Editorial experiments](EDITORIAL_EXPERIMENT.md) documents how to measure changes before rollout.
+
 ## Important limitations
 
 - GitHub Actions and free text/image/TTS providers have usage limits and can change their free access at any time.
