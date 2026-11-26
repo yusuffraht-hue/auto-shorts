@@ -63,6 +63,7 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core blender
       - run: pip install -r requirements.txt
       - name: Make the short
+        id: make
         run: python generate.py
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -89,11 +90,31 @@ jobs:
             out/youtube-receipt.json
           retention-days: 7
           if-no-files-found: ignore
-      - name: Save episode history
-        if: github.event_name == 'schedule'
+      - name: Record scheduled publishing outcome
+        if: ${{ always() && !cancelled() && github.run_attempt == 1 && github.event_name == 'schedule' && steps.route.outcome == 'success' }}
         run: |
           git config user.name auto-shorts-bot
           git config user.email bot@users.noreply.github.com
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          receipt_path = Path("out/youtube-receipt.json")
+          receipt = json.loads(receipt_path.read_text()) if receipt_path.exists() else {}
+          run_id = os.environ["GITHUB_RUN_ID"]
+          record = {
+              "run_id": run_id,
+              "format": os.environ["STORY_FORMAT"],
+              "generation_outcome": os.environ["GENERATION_OUTCOME"],
+              "upload_state": receipt.get("state", "no_receipt"),
+          }
+          if receipt.get("state") == "verified" and receipt.get("privacyStatus") == "public":
+              record["public_video_id"] = receipt["video_id"]
+          ledger = Path("history/publishing")
+          ledger.mkdir(parents=True, exist_ok=True)
+          (ledger / f"{run_id}.json").write_text(json.dumps(record, indent=2) + "\n")
+          PY
           git add history
           git diff --cached --quiet && exit 0
           git commit -m "history: ${STORY_FORMAT}"
@@ -101,3 +122,4 @@ jobs:
           git push origin HEAD:main
         env:
           STORY_FORMAT: ${{ steps.route.outputs.format }}
+          GENERATION_OUTCOME: ${{ steps.make.outcome }}

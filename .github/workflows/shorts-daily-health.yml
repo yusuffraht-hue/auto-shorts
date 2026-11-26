@@ -1,0 +1,22 @@
+name: Shorts daily health
+
+on:
+  schedule:
+    - cron: "23 7 * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  report:
+    if: vars.YOUTUBE_SIX_FORMATS == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check the previous Calgary day's publishing runs
+        run: python shorts_health.py
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
