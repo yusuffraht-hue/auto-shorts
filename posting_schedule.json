@@ -1,6 +1,5 @@
 {
   "timezone": "America/Edmonton",
-  "status": "proposed_until_scheduler_integration_and_tests",
   "slots": [
     {
       "format": "world",
@@ -25,6 +24,14 @@
     {
       "format": "analysis",
       "time": "18:00"
+    },
+    {
+      "format": "showcase",
+      "time": "20:00"
+    },
+    {
+      "format": "trending",
+      "time": "21:00"
     }
   ],
   "skip_if_quality_or_compliance_fails": true,

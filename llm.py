@@ -162,7 +162,13 @@ def _groq(prompt):
         time.sleep(20)
 
 
+_github_compatible = True
+
+
 def _github(prompt):
+    global _github_compatible
+    if not GH or not _github_compatible:
+        return
     r = requests.post(
         "https://models.github.ai/inference/chat/completions",
         headers={"Authorization": f"Bearer {GH}", "Accept": "application/json",
@@ -175,7 +181,8 @@ def _github(prompt):
         try:
             yield r.json()["choices"][0]["message"]["content"]
         except (KeyError, IndexError, ValueError):
-            print("llm: github returned non-chat response; falling back")
+            _github_compatible = False
+            print("llm: github returned non-chat response; skipping it for this run")
 
 
 _pollinations_available_at = 0.0
@@ -206,8 +213,9 @@ def _pollinations(prompt):
             wait = min(int(retry.group(1)) + 3, 90) if retry else 48
             _pollinations_available_at = time.monotonic() + wait
         elif r.status_code == 400 and "output token limit" in r.text.lower():
-            # This can be transient even with reasoning disabled. Keep retries paced and bounded.
+            # Return to the caller so a checked reserve can run before another identical request.
             _pollinations_available_at = time.monotonic() + 48
+            return
         else:
             time.sleep(8)
 
@@ -218,7 +226,10 @@ def call_llm(prompt):
         sources.append(("gemini", _gemini, 2))
     if GROQ:
         sources.append(("groq", _groq, 2))
-    sources += [("github", _github, 2), ("pollinations", _pollinations, 1)]
+    if os.environ.get("LOCAL_MEDIA_ONLY") == "1":
+        sources = [("github", _github, 2)]
+    else:
+        sources += [("github", _github, 2), ("pollinations", _pollinations, 1)]
     for name, fn, tries in sources:
         for _ in range(tries):
             try:

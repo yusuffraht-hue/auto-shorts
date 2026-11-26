@@ -6,11 +6,12 @@ import asyncio, json, os, pathlib, random, re, shutil, subprocess, textwrap, tim
 import edge_tts
 import requests
 from llm import call_llm
+import editorial
 import series
 import quality
 
-OUT = pathlib.Path("out")
-OUT.mkdir(exist_ok=True)
+OUT = pathlib.Path(os.environ.get("SHORTS_OUTPUT", "out"))
+OUT.mkdir(parents=True, exist_ok=True)
 FONT = os.environ.get("FONT", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
 PRIVACY = os.environ.get("PRIVACY", "private")
 VOICE = os.environ.get("VOICE", "en-US-AndrewMultilingualNeural")
@@ -32,12 +33,56 @@ SHOT_COMPOSITIONS = (
 )
 
 
+def accepted_script(meta, data, hist, report):
+    data = series.finish(meta, data, hist)
+    data["quality_report"] = report
+    data["style"], data["voice"] = meta["style"], meta["voice"]
+    data["hero"] = data.get("hero") or meta["hero_default"]
+    return data
+
+
+def reserve_script(hist, meta):
+    """Use a reviewed script once, with the same gate as provider drafts."""
+    entries = json.loads(pathlib.Path(__file__).with_name("editorial_reserve.json").read_text())
+    data = entries.get(meta["kind"])
+    if not data:
+        return None
+    reserve_id = data["title"]
+    if any(episode.get("reserve_id") == reserve_id for episode in hist["episodes"]):
+        return None
+    if meta["series"] == "anime":
+        topic_id = data.pop("topic_id")
+        avoid = {topic["id"] for topic in editorial.load_topics() if topic["id"] != topic_id}
+        try:
+            meta = series.build(SERIES, hist, avoid)
+        except RuntimeError:
+            return None
+        if meta.get("topic_id") != topic_id:
+            return None
+    report = quality.check(data, hist)
+    if not report["passed"]:
+        print("Editorial reserve failed quality checks:", report["issues"])
+        return None
+    print("Using editorial reserve for", meta["kind"], reserve_id)
+    data = accepted_script(meta, data, hist, report)
+    hist["episodes"][-1]["reserve_id"] = reserve_id
+    return data
+
+
 def write_script(hist):
     """Generate, quality-check and repair a story before recording it in history."""
+    if os.environ.get("EDITORIAL_RESERVE_ONLY") == "1":
+        data = reserve_script(hist, series.build(SERIES, hist))
+        if data:
+            return data
+        raise RuntimeError("No unused editorial reserve passed the quality gate")
     avoid = set()
     last_provider_error = None
     for _ in range(5):
-        meta = series.build(SERIES, hist, avoid)
+        try:
+            meta = series.build(SERIES, hist, avoid)
+        except RuntimeError:
+            break
         feedback = ""
         for _ in range(2):
             try:
@@ -52,11 +97,7 @@ def write_script(hist):
                 break
             report = quality.check(data, hist)
             if report["passed"]:
-                data = series.finish(meta, data, hist)
-                data["quality_report"] = report
-                data["style"], data["voice"] = meta["style"], meta["voice"]
-                data["hero"] = data.get("hero") or meta["hero_default"]
-                return data
+                return accepted_script(meta, data, hist, report)
             print("story quality gate rejected draft:", report["issues"])
             feedback = (
                 "\n\nQUALITY REPAIR: Correct the specific issues below in the previous draft. "
@@ -66,7 +107,9 @@ def write_script(hist):
                 + "\nPrevious draft JSON:\n"
                 + json.dumps(data, ensure_ascii=True)
             )
-        avoid.add(meta.get("work"))
+        avoid.add(meta.get("topic_id") or meta.get("work"))
+        if reserve := reserve_script(hist, meta):
+            return reserve
     raise RuntimeError("could not generate a story that passed the quality gate") from last_provider_error
 
 
@@ -102,8 +145,19 @@ def get_image(prompt, path, seed):
     raise RuntimeError("image generation failed")
 
 
+def local_voice(text, path):
+    speech = path.with_suffix(".txt")
+    speech.write_text(text)
+    subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-f", "lavfi", "-i",
+                    f"flite=textfile={speech}:voice=slt", str(path)],
+                   check=True, capture_output=True)
+
+
 async def tts_words(text, path):
     """Speech + [(start, end, word)] timings. Retries, backup voices, then Google TTS as a last resort."""
+    if os.environ.get("LOCAL_MEDIA_ONLY") == "1":
+        local_voice(text, path)
+        return []
     voices = [VOICE, "en-US-AndrewNeural", "en-US-GuyNeural", "en-US-AriaNeural"]
     for attempt, voice in enumerate(voices * 2):
         words = []
@@ -124,9 +178,8 @@ async def tts_words(text, path):
         except Exception as e:
             print("tts retry:", voice, repr(e)[:120])
         await asyncio.sleep(2 + attempt)
-    print("tts: falling back to Google TTS")
-    from gtts import gTTS
-    gTTS(text, lang="en").save(str(path))
+    print("tts: falling back to local narration")
+    local_voice(text, path)
     return []
 
 
@@ -175,6 +228,8 @@ def make_clip(i, scene, hero, seed, style):
     if shot.exists():
         img, pre = shot, "nlmeans=s=8:p=7:r=15,"  # Blender still: smooth render grain
     else:
+        if os.environ.get("LOCAL_MEDIA_ONLY") == "1":
+            raise RuntimeError(f"Missing local illustration for scene {i + 1}")
         get_image(prompt, img, seed)
         pre = ""  # preserve provider attribution
     words = asyncio.run(tts_words(scene["line"], aud))
@@ -191,12 +246,12 @@ def make_clip(i, scene, hero, seed, style):
         cf = OUT / f"c{i}_{k}.txt"
         cf.write_text(txt.upper())
         color = "white"
-        vf += (f",drawtext=fontfile={FONT}:textfile={cf}:fontcolor={color}:fontsize={caption_font_size(txt)}:box=1:boxcolor=black@0.32:boxborderw=18:shadowcolor=black:shadowx=2:shadowy=2:"
+        vf += (f",drawtext=fontfile={FONT}:textfile={cf}:expansion=none:fontcolor={color}:fontsize={caption_font_size(txt)}:box=1:boxcolor=black@0.32:boxborderw=18:shadowcolor=black:shadowx=2:shadowy=2:"
                f"borderw=9:bordercolor=black:x=(w-text_w)/2:y=h*0.68:"
                f"enable='between(t,{s:.2f},{e:.2f})'")
     subprocess.run(
-        ["ffmpeg", "-y", "-i", str(img), "-i", str(aud), "-vf", vf, "-af", "loudnorm=I=-16:TP=-1.5:LRA=11,apad",
-         "-t", f"{dur:.2f}", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac",
+        ["ffmpeg", "-y", "-filter_threads", "2", "-i", str(img), "-i", str(aud), "-vf", vf, "-af", "loudnorm=I=-16:TP=-1.5:LRA=11,apad",
+         "-t", f"{dur:.2f}", "-c:v", "libx264", "-preset", "veryfast", "-threads", "2", "-pix_fmt", "yuv420p", "-c:a", "aac",
          "-ar", "44100", str(clip)],
         check=True, capture_output=True)
     return clip
@@ -210,9 +265,11 @@ def blender_stills(data):
     try:
         import shots
         spec = shots.plan(data)
+        if os.environ.get("RENDER_CHECK") == "1":
+            spec.update(width=288, height=512, samples=4)
         (OUT / "shots.json").write_text(json.dumps(spec))
         t0 = time.time()
-        r = subprocess.run(["blender", "-b", "-noaudio", "-P", "blender/render_shots.py", "--",
+        r = subprocess.run(["blender", "-b", "-t", "4", "-noaudio", "-P", "blender/render_shots.py", "--",
                             str(OUT / "shots.json"), str(OUT)],
                            capture_output=True, text=True, timeout=1800)
         print("blender:", r.returncode, "%.0fs" % (time.time() - t0),
@@ -285,7 +342,6 @@ if __name__ == "__main__":
     if not dry_run and not queue_only and os.environ.get("YOUTUBE_PROVIDER") == "composio":
         from post_youtube import publisher_from_env
         publisher = publisher_from_env()
-        publisher.preflight()
     elif not dry_run and not queue_only:
         if not all(os.environ.get(k) for k in ("YT_CLIENT_ID", "YT_CLIENT_SECRET", "YT_REFRESH_TOKEN")):
             raise RuntimeError("YouTube credentials missing; use dry_run for render-only tests")
@@ -298,7 +354,13 @@ if __name__ == "__main__":
     (OUT / "quality-report.json").write_text(json.dumps(data["quality_report"], indent=2))
     (OUT / "story.txt").write_text(data["title"] + "\n\n" + data["full_story"] + "\n\n"
                                    + " ".join("#" + t.replace(" ", "") for t in data["tags"]))
-    blender_stills(data)
+    if os.environ.get("LOCAL_MEDIA_ONLY") == "1" and SERIES == "anime":
+        from trend_video import illustrate
+        for index, scene in enumerate(data["scenes"]):
+            illustrate(OUT / f"shot_{index}.png", "ANIME & NOVEL STORIES",
+                       data["title"], scene["line"], index)
+    else:
+        blender_stills(data)
     video = build_video(data)
     dry_run = os.environ.get("DRY_RUN", "false").lower() == "true"
     if dry_run:
@@ -306,11 +368,19 @@ if __name__ == "__main__":
     elif queue_only:
         manifest = {"schema": 1, "series": SERIES, "run_id": os.environ.get("GITHUB_RUN_ID"),
                     "video": "final.mp4", "metadata": _youtube_upload_body(data),
-                    "quality_passed": data["quality_report"]["passed"], "state": "pending_upload"}
+                    "quality_passed": data["quality_report"]["passed"], "state": "pending_upload",
+                    "history": hist}
         (OUT / "youtube-pending.json").write_text(json.dumps(manifest, indent=2))
         print("Render queued for authorized upload; history unchanged.")
     elif publisher is not None:
-        publisher.publish(video, _youtube_upload_body(data), OUT / "youtube-receipt.json")
+        # Keep the checked render as an artifact when YouTube rejects preflight.
+        receipt = OUT / "youtube-receipt.json"
+        try:
+            publisher.preflight()
+        except RuntimeError as error:
+            receipt.write_text(json.dumps({"state": "preflight_blocked", "reason": str(error)}))
+            raise
+        publisher.publish(video, _youtube_upload_body(data), receipt)
         series.save(SERIES, hist)
     elif creds is not None:
         upload_youtube(video, data, creds)

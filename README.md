@@ -59,3 +59,24 @@ python -m unittest discover -v
 - Private and unlisted Shorts do not count toward YouTube's qualified public Shorts-view thresholds.
 - YouTube monetization is reviewed at the channel level. Repetitive, mass-produced or minimally varied AI content may be ineligible even when every upload is technically original.
 - If the creator is under 18, AdSense for YouTube requires an approved account belonging to a parent or guardian over 18; do not create an AdSense account in a minor's name.
+
+## Eight daily Shorts
+
+The production workflow uses Alberta Time (UTC−6) with no end date. The Roblox game trend engine is separate from the Trending Topics Shorts.
+
+| Calgary time | Format |
+| --- | --- |
+| 8 AM | World Simulator |
+| 10 AM | Kingdom Simulator |
+| 12 PM | In This Town |
+| 2 PM | Power Archive |
+| 4 PM | Mystery Files |
+| 6 PM | Anime & Novel Stories |
+| 8 PM | Useful Web Lab Showcase |
+| 9 PM | Trending Topics |
+
+Render tests exercise local speech, FFmpeg, Blender or illustrated explainers, and the real Web Lab demo in an isolated browser. The showcase verifies a production deployment against the public release manifest and skips projects without a verified demo. Trending Topics uses a current Hacker News ranking to choose a sourced, reviewed tech explainer. It skips when none of the stories qualify.
+
+Production jobs run when `SHORTS_DAILY_ENABLED=true`. Public publishing additionally requires `SHORTS_PUBLIC_VERIFIED=true` after a successful private canary from this workflow, and the Composio project must have a hard $0 limit. Use the manual production dispatch with `upload=true` for the canary. Check the processed private video ID and disclosure in the workflow receipt. Showcase public publishing also requires the verified channel profile link flag. Keep Cloudflare inference disabled while free usage is unverified. The production renderer uses local media and the workflow's GitHub Models token or an unused, reviewed fallback script.
+
+Each public attempt reserves its slot and content in `history/production` before upload. A failed preflight changes no reservation. After submission, check the receipt and match the release marker in YouTube Studio before making any recovery decision. An ambiguous attempt holds its slot and content key to prevent duplicates. Other eligible slots can still run.
