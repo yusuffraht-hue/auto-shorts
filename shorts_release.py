@@ -9,7 +9,6 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from posting_schedule import scheduled_slot
-from post_youtube import publisher_from_env
 
 OUT = Path("out")
 LEDGER = Path("history/production")
@@ -116,6 +115,8 @@ def already_reserved(kind, slot, key, manifest, records):
 
 
 def publish(kind, slot):
+    from post_youtube import publisher_from_env
+
     mode = os.environ["PUBLISH_MODE"]
     if mode not in ("canary", "public") or os.environ.get("GITHUB_RUN_ATTEMPT") != "1":
         raise RuntimeError("Publishing requires an authorized first attempt")
