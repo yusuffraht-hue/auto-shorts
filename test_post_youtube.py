@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from post_youtube import YouTubePublisher
+from post_youtube import YouTubePublisher, YouTubeQuotaExceeded
 
 
 class PublisherTests(unittest.TestCase):
@@ -67,6 +67,14 @@ class PublisherTests(unittest.TestCase):
         }):
             with self.assertRaisesRegex(RuntimeError, "YouTube API quota exhausted"):
                 self.publisher._proxy("channels", "GET", {"mine": "true"})
+
+    def test_execute_recognizes_composio_quota_envelope(self):
+        with patch.object(self.publisher, "_post", return_value={
+            "successful": False,
+            "data": {"message": json.dumps({"error": {"errors": [{"reason": "quotaExceeded"}]}})},
+        }):
+            with self.assertRaises(YouTubeQuotaExceeded):
+                self.publisher._execute("YOUTUBE_LIST_CHANNELS", {"mine": True})
 
     def test_wrong_channel_fails_preflight(self):
         with (patch("post_youtube.requests.get") as get,

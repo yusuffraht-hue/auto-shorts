@@ -1,8 +1,9 @@
 import unittest
 from datetime import datetime, timezone
+from unittest.mock import patch
 
 from posting_schedule import scheduled_slot
-from shorts_release import already_reserved
+from shorts_release import already_reserved, quota_active, quota_reset, scheduled_block
 from trend_video import select_topic
 
 
@@ -17,6 +18,28 @@ class ShortsReleaseTests(unittest.TestCase):
                                  {"format": kind, "key": f"2026-11-26:{kind}"})
         with self.assertRaisesRegex(ValueError, "too late"):
             scheduled_slot("0 3 * * *", datetime(2026, 11, 27, 8, tzinfo=timezone.utc))
+
+    def test_backup_retains_the_primary_slot_and_cutoff(self):
+        creation = datetime(2026, 11, 27, 2, 25, tzinfo=timezone.utc)
+        self.assertEqual(scheduled_slot("19 2 * * *", creation), scheduled_slot("0 2 * * *", creation))
+        with self.assertRaisesRegex(ValueError, "too late"):
+            scheduled_slot("19 2 * * *", datetime(2026, 11, 27, 4, tzinfo=timezone.utc))
+
+    def test_backup_stops_before_render_when_slot_has_reservation(self):
+        with patch("shorts_release.subprocess.check_output",
+                   return_value="history/production/2026-11-26-world.json\n") as git_read:
+            result = scheduled_block("2026-11-26:world", datetime(2026, 11, 26, tzinfo=timezone.utc))
+        self.assertIn("reservation", result)
+        git_read.assert_called_once()
+
+    def test_quota_pause_ends_at_pacific_midnight_in_both_seasons(self):
+        for month, reset_hour in [(7, 7), (11, 8)]:
+            now = datetime(2026, month, 26, 20, tzinfo=timezone.utc)
+            reset = quota_reset(now)
+            record = {"resume_at": reset.isoformat()}
+            self.assertEqual(reset, datetime(2026, month, 27, reset_hour, tzinfo=timezone.utc))
+            self.assertTrue(quota_active(record, now))
+            self.assertFalse(quota_active(record, reset))
 
     def test_ambiguous_attempt_blocks_same_slot_and_same_project(self):
         record = {"slot": "2026-11-25:showcase", "content_key": "app-a",

@@ -5,13 +5,15 @@ import os
 import re
 import subprocess
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, time, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from posting_schedule import scheduled_slot
 
 OUT = Path("out")
 LEDGER = Path("history/production")
+QUOTA = Path("history/youtube-quota.json")
 FORMATS = ("world", "kingdom", "town", "power", "mystery", "analysis", "showcase", "trending")
 
 
@@ -38,6 +40,37 @@ def persist(path, record, history=None):
     git("push", "origin", "HEAD:main")
 
 
+def quota_reset(now):
+    pacific = ZoneInfo("America/Los_Angeles")
+    tomorrow = now.astimezone(pacific).date() + timedelta(days=1)
+    return datetime.combine(tomorrow, time.min, pacific).astimezone(timezone.utc)
+
+
+def quota_active(record, now):
+    return now < datetime.fromisoformat(record["resume_at"])
+
+
+def save_quota_block():
+    now = datetime.now(timezone.utc)
+    persist(QUOTA, {"state": "quota_exhausted", "detected_at": now.isoformat(),
+                    "resume_at": quota_reset(now).isoformat()})
+
+
+def scheduled_block(slot, now):
+    destination = LEDGER / f"{slot.replace(':', '-')}.json"
+    paths = subprocess.check_output(
+        ["git", "ls-tree", "-r", "--name-only", "FETCH_HEAD", "--", str(destination), str(QUOTA)],
+        text=True, timeout=30).splitlines()
+    if str(destination) in paths:
+        return "The slot already has an upload reservation"
+    if str(QUOTA) in paths:
+        record = json.loads(subprocess.check_output(
+            ["git", "show", f"FETCH_HEAD:{QUOTA}"], timeout=30))
+        if quota_active(record, now):
+            return f"YouTube quota is paused until {record['resume_at']}"
+    return None
+
+
 def verify_media(path):
     probe = json.loads(subprocess.check_output([
         "ffprobe", "-v", "error", "-show_streams", "-show_format", "-of", "json", str(path),
@@ -56,15 +89,20 @@ def verify_media(path):
 
 def route():
     kind = os.environ.get("REQUESTED_FORMAT")
+    blocked = None
     if kind:
         slot = {"format": kind, "key": "manual"}
     else:
         stamp = os.environ["RUN_CREATED_AT"] or datetime.now(timezone.utc).isoformat()
         slot = scheduled_slot(os.environ["CRON"], datetime.fromisoformat(stamp))
+        blocked = scheduled_block(slot["key"], datetime.now(timezone.utc))
+    if blocked:
+        print(blocked)
     if slot["format"] not in FORMATS:
         raise ValueError("Unknown format")
     with Path(os.environ["GITHUB_OUTPUT"]).open("a") as output:
-        print(f"format={slot['format']}\nslot={slot['key']}", file=output)
+        proceed = "false" if blocked else "true"
+        print(f"format={slot['format']}\nslot={slot['key']}\nproceed={proceed}", file=output)
 
 
 def render(kind):
@@ -116,7 +154,7 @@ def already_reserved(kind, slot, key, manifest, records):
 
 
 def publish(kind, slot):
-    from post_youtube import publisher_from_env
+    from post_youtube import YouTubeQuotaExceeded, publisher_from_env
 
     mode = os.environ["PUBLISH_MODE"]
     if mode not in ("canary", "public") or os.environ.get("GITHUB_RUN_ATTEMPT") != "1":
@@ -156,6 +194,9 @@ def publish(kind, slot):
     if mode == "public":
         git("fetch", "origin", "main")
         git("merge", "--ff-only", "origin/main")
+        if QUOTA.exists() and quota_active(json.loads(QUOTA.read_text()), datetime.now(timezone.utc)):
+            print("YouTube quota is paused until its daily reset")
+            return
         records = [json.loads(path.read_text()) for path in LEDGER.glob("*.json")]
         if already_reserved(kind, slot, key, manifest, records):
             print("Slot or content already reserved")
@@ -169,6 +210,11 @@ def publish(kind, slot):
     publisher = publisher_from_env()
     try:
         publisher.preflight()
+    except YouTubeQuotaExceeded as error:
+        dump(receipt, {"state": "quota_exhausted", "reason": str(error)})
+        if mode == "public":
+            save_quota_block()
+        raise
     except RuntimeError as error:
         dump(receipt, {"state": "preflight_blocked", "reason": str(error)})
         raise
@@ -180,6 +226,10 @@ def publish(kind, slot):
     metadata["snippet"]["description"] += f"\n\nAuto Shorts release: {slot}/{key}"
     try:
         publisher.publish(video, metadata, receipt)
+    except YouTubeQuotaExceeded:
+        if mode == "public":
+            save_quota_block()
+        raise
     finally:
         if mode == "public":
             actual = json.loads(receipt.read_text()) if receipt.exists() else {}
