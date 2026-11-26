@@ -1,5 +1,6 @@
 """Select an explicit public release and record a verified mobile demo."""
 import argparse
+import base64
 import hashlib
 import json
 import re
@@ -11,6 +12,7 @@ from urllib.error import HTTPError
 from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 
+SOURCE_API = "https://api.github.com/repos/yusuffraht-hue/useful-web-lab-public/"
 SITE = "https://yusuffraht-hue.github.io/useful-web-lab-public/"
 OUT = Path("out/lab-promo")
 HISTORY = Path("history/lab-promos")
@@ -29,6 +31,73 @@ def fetch(url):
         if len(data) > 1_000_000:
             raise ValueError("Response exceeds the release-check limit")
         return data
+
+
+
+def source_json(path):
+    return json.loads(fetch(SOURCE_API + path))
+
+
+def deployed_apps(commit):
+    tree = source_json(f"git/trees/{commit}?recursive=1")
+    if tree.get("truncated"):
+        raise ValueError("Public source tree is incomplete")
+    apps, demos = {}, {}
+    for entry in tree["tree"]:
+        match = re.fullmatch(r"apps/([a-z0-9][a-z0-9-]{0,47})/(index\.html|promo\.json)", entry["path"])
+        if match and entry["type"] == "blob":
+            project, name = match.groups()
+            (apps if name == "index.html" else demos)[project] = entry["sha"]
+    return apps, demos
+
+
+def source_blob(sha):
+    blob = source_json(f"git/blobs/{sha}")
+    if blob.get("encoding") != "base64":
+        raise ValueError("Unexpected public source encoding")
+    return base64.b64decode(blob["content"])
+
+
+def deployment_launches(now):
+    deployments = source_json("deployments?environment=github-pages&per_page=12")
+    successful = {}
+    for deployment in deployments:
+        statuses = source_json(f"deployments/{int(deployment['id'])}/statuses")
+        success = next((status for status in statuses if status.get("state") == "success"), None)
+        if success:
+            deployed = datetime.fromisoformat(success["created_at"])
+            successful.setdefault(deployment["sha"], deployed)
+            if deployed < now - timedelta(days=7):
+                break
+    history = sorted(successful.items(), key=lambda item: item[1])
+    previous, live, releases = {}, {}, []
+    if history:
+        live, _ = deployed_apps(history[-1][0])
+    for index, (commit, deployed) in enumerate(history):
+        apps, demos = deployed_apps(commit)
+        has_baseline = index > 0 or len(deployments) < 12
+        if has_baseline and now - timedelta(days=7) <= deployed <= now:
+            for project in sorted(apps.keys() - previous.keys()):
+                if apps[project] != live.get(project):
+                    continue
+                item = {"project": project, "kind": "launch",
+                        "path": DEMOS.get(project, (f"{project}/",))[0],
+                        "sha256": hashlib.sha256(source_blob(apps[project])).hexdigest(),
+                        "deployed_at": deployed.isoformat()}
+                if project not in DEMOS and project in demos:
+                    item["demo"] = json.loads(source_blob(demos[project]))
+                releases.append(item)
+        previous = apps
+    return {"version": 1, "releases": releases}
+
+
+def release_feed(now):
+    try:
+        return json.loads(fetch(SITE + "shorts-releases.json"))
+    except HTTPError as error:
+        if error.code != 404:
+            raise
+        return deployment_launches(now)
 
 
 def select(feed, records, day, now):
@@ -245,18 +314,24 @@ def main():
     if args.sample:
         app, item = args.sample, None
     else:
-        try:
-            feed = json.loads(fetch(SITE + "shorts-releases.json"))
-        except HTTPError as error:
-            if error.code != 404:
-                raise
-            (OUT / "report.json").write_text(json.dumps({"state": "skipped", "reasons": ["No public promo release feed"]}))
-            return
-        item, reasons = select(feed, records, day, now)
-        if not item:
-            (OUT / "report.json").write_text(json.dumps({"state": "skipped", "reasons": reasons or ["No new eligible release"]}))
-            return
-        app = item["project"]
+        feed = release_feed(now)
+        skipped = []
+        while True:
+            item, reasons = select(feed, records, day, now)
+            if not item:
+                report = {"state": "skipped", "reasons": skipped + reasons or ["No new eligible release"]}
+                (OUT / "report.json").write_text(json.dumps(report))
+                return
+            app = item["project"]
+            path = release_demo(item)[0]
+            try:
+                _, url = live_release(app, item["sha256"], path)
+                check_profile_destination(url)
+            except (OSError, ValueError) as error:
+                skipped.append(f"{app}: {error}")
+                feed = {**feed, "releases": [entry for entry in feed["releases"] if entry is not item]}
+                continue
+            break
     details = release_demo(item) if item else (*DEMOS[app], None)
     path, title, value, sample = details
     sha, url = live_release(app, item["sha256"] if item else None, path)

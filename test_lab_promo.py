@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 from urllib.error import HTTPError
 
-from lab_promo import SITE, check_profile_destination, live_release, select
+from lab_promo import SITE, check_profile_destination, deployment_launches, live_release, select
 from lab_promo_publish import reconcile
 
 NOW = datetime(2026, 11, 26, 20, tzinfo=timezone.utc)
@@ -78,3 +78,23 @@ class LabPromoTests(unittest.TestCase):
         self.assertEqual(self.candidate([release]), release)
         self.assertIsNone(self.candidate([{**release, "path": "../timer/"}]))
         self.assertIsNone(self.candidate([{**release, "demo": None}]))
+
+    def test_discovers_new_projects_from_successful_public_deployments(self):
+        deployments = [{"id": 3, "sha": "failed"}, {"id": 2, "sha": "latest"},
+                       {"id": 1, "sha": "first"}]
+        responses = [
+            deployments,
+            [{"state": "failure"}],
+            [{"state": "success", "created_at": "2026-11-26T13:00:00Z"}],
+            [{"state": "inactive"}, {"state": "success", "created_at": "2026-11-26T12:00:00Z"}],
+        ]
+        with patch("lab_promo.source_json", side_effect=responses), patch(
+            "lab_promo.deployed_apps", side_effect=[
+                ({"screenshot-cleaner": "b", "signal-garden": "c"}, {}),
+                ({"screenshot-cleaner": "a"}, {}),
+                ({"screenshot-cleaner": "b", "signal-garden": "c"}, {}),
+            ],
+        ), patch("lab_promo.source_blob", return_value=b"published HTML"):
+            discovered = deployment_launches(NOW)["releases"]
+        self.assertEqual([entry["project"] for entry in discovered], ["signal-garden"])
+        self.assertEqual(discovered[0]["sha256"], hashlib.sha256(b"published HTML").hexdigest())

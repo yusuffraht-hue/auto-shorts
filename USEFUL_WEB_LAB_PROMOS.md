@@ -1,10 +1,16 @@
 # Useful Web Lab promos
 
-The separate scheduled workflow checks once a day at 7:17 p.m. Calgary time. Pull requests and manual workflow runs render the Screenshot Cleaner sample without uploading. The six-format schedule continues independently.
+The separate scheduled workflow checks once a day at 7:17 p.m. Calgary time. Pull requests and manual runs check the same live releases and render without uploading. The six-format schedule continues independently.
+
+## Public deployment detection
+
+Auto-Shorts reads successful GitHub Pages deployments from Useful Web Lab. It automatically discovers projects added under `apps/<project-id>/index.html`, compares the deployed source with the live HTML checksum, and confirms the app can be reached from the YouTube profile destination. The first public deployment can include multiple launches. Auto-Shorts promotes at most one per day.
+
+For a new app using custom controls, put its demo object in `apps/<project-id>/promo.json`. The object uses the schema below. The fallback promotes launches discovered from deployments. Publish a feed entry to mark a meaningful update.
 
 ## Public release feed
 
-Useful Web Lab should deploy a version 1 JSON feed at `https://yusuffraht-hue.github.io/useful-web-lab-public/shorts-releases.json` with the static site. Add entries only for confirmed public launches and meaningful user-facing updates. Publish the feed with the same deployed HTML and release manifest. Keep recent releases for at least seven days. Do not add maintenance changes, typo fixes, or private previews. Use this schema:
+Useful Web Lab can deploy an explicit version 1 JSON feed at `https://yusuffraht-hue.github.io/useful-web-lab-public/shorts-releases.json` with the static site. Add entries only for confirmed public launches and meaningful user-facing updates. Publish the feed with the same deployed HTML and release manifest. Keep recent releases for at least seven days. Do not add maintenance changes, typo fixes, or private previews. Use this schema:
 
 ```json
 {
