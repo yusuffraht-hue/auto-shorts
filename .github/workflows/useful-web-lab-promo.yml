@@ -1,0 +1,84 @@
+name: Useful Web Lab promo
+
+on:
+  schedule:
+    - cron: "17 1 * * *"
+  pull_request:
+    paths:
+      - "lab_promo.py"
+      - ".github/workflows/useful-web-lab-promo.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: useful-web-lab-promotion
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core
+      - run: pip install playwright && python -m playwright install --with-deps chromium
+      - name: Verify live release and record the demo
+        id: demo
+        run: |
+          mkdir -p out/lab-promo
+          if [ "$EVENT_NAME" != schedule ]; then
+            python lab_promo.py --sample screenshot-cleaner 2>&1 | tee out/lab-promo/check.log
+          else
+            python lab_promo.py 2>&1 | tee out/lab-promo/check.log
+          fi
+          if test -f out/lab-promo/final.mp4; then
+            echo 'rendered=true' >> "$GITHUB_OUTPUT"
+          fi
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: useful-web-lab-promo
+          path: |
+            out/lab-promo/report.json
+            out/lab-promo/check.log
+            out/lab-promo/final.mp4
+          retention-days: 7
+    outputs:
+      rendered: ${{ steps.demo.outputs.rendered }}
+
+  publish:
+    needs: render
+    if: github.event_name == 'schedule' && github.run_attempt == 1 && needs.render.outputs.rendered == 'true' && vars.LAB_PROMO_PROFILE_LINK_VERIFIED == 'true'
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v7
+        with:
+          name: useful-web-lab-promo
+          path: out/lab-promo
+      - run: pip install requests
+      - name: Reserve and publish once
+        run: |
+          git config user.name auto-shorts-bot
+          git config user.email bot@users.noreply.github.com
+          python lab_promo_publish.py
+        env:
+          COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
+          COMPOSIO_YOUTUBE_ACCOUNT_ID: ${{ vars.COMPOSIO_YOUTUBE_ACCOUNT_ID }}
+          YOUTUBE_CHANNEL_ID: ${{ vars.YOUTUBE_CHANNEL_ID }}
