@@ -13,11 +13,8 @@ scn = bpy.context.scene
 scn.render.engine = "CYCLES"
 scn.cycles.device = "CPU"
 scn.cycles.samples = SPEC.get("samples", 40)
-try:
-    scn.cycles.use_denoising = True
-    scn.cycles.denoiser = "OPENIMAGEDENOISE"
-except Exception:
-    pass
+# The video renderer denoises the stills consistently across Blender builds.
+scn.cycles.use_denoising = False
 try:
     scn.cycles.sample_clamp_direct = 6.0
     scn.cycles.sample_clamp_indirect = 1.5

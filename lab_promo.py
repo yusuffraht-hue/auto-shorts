@@ -9,9 +9,12 @@ import subprocess
 from datetime import datetime, timedelta, timezone
 from html.parser import HTMLParser
 from pathlib import Path
+from zipfile import ZipFile
 from urllib.error import HTTPError
 from urllib.parse import urljoin
 from urllib.request import Request, urlopen
+
+from web_lab_showcase import verify_release
 
 SOURCE_API = "https://api.github.com/repos/yusuffraht-hue/useful-web-lab-public/"
 SITE = "https://yusuffraht-hue.github.io/useful-web-lab-public/"
@@ -136,7 +139,11 @@ def select(feed, records, day, now):
         if not now - timedelta(days=7) <= published <= now:
             continue
         key = f"{app}-{sha}"
-        if key not in records:
+        if key not in records and not (
+            item["kind"] == "launch" and any(
+                record.get("project") == app for record in records.values()
+            )
+        ):
             candidates.append((published, key, item))
     return (max(candidates, key=lambda entry: (entry[0], entry[1]))[2] if candidates else None), reasons
 
@@ -169,11 +176,7 @@ def release_demo(item):
 
 def live_release(app, expected=None, path=None):
     url = SITE + (DEMOS[app][0] if path is None else path)
-    manifest = json.loads(fetch(url + "release.json"))
-    sha = hashlib.sha256(fetch(url)).hexdigest()
-    if manifest.get("app") != app or manifest.get("sha256") != sha or (expected and expected != sha):
-        raise ValueError("Live app does not match the selected release")
-    return sha, url
+    return verify_release(app, url, fetch, expected), url
 
 
 def check_profile_destination(url):
@@ -251,6 +254,13 @@ def demo(app, url, sha, chromium=None, sample=None):
                 page.get_by_role("button", name="Download batch ZIP").click()
             if saved.value.suggested_filename != "cleaned-screenshots.zip":
                 raise ValueError("Sample export did not produce the expected archive")
+            with ZipFile(saved.value.path()) as batch:
+                exports = batch.namelist()
+                if len(exports) != 3 or len(set(exports)) != 3 or any(
+                    not name.endswith(".png") or not batch.read(name).startswith(b"\x89PNG\r\n\x1a\n")
+                    for name in exports
+                ):
+                    raise ValueError("The sample archive did not contain three PNG exports")
         elif app == "signal-garden":
             for tile in (1, 7, 14):
                 page.get_by_role("button", name=f"Tile {tile}", exact=True).click()
@@ -275,6 +285,7 @@ def demo(app, url, sha, chromium=None, sample=None):
 
 def render(app, raw, details=None):
     from PIL import ImageFont
+    from generate import local_voice
 
     _, title, value, sample = details or (*DEMOS[app], None)
     actions = {"screenshot-cleaner": "Try the sample batch\nCover details, then export",
@@ -297,8 +308,11 @@ def render(app, raw, details=None):
             f"enable='between(t,{start},{end})'"
         )
     final = OUT / "final.mp4"
-    run("ffmpeg", "-loglevel", "error", "-y", "-i", str(raw), "-vf", ",".join(overlays),
-        "-t", "24", "-an", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(final))
+    audio = OUT / "showcase.mp3"
+    local_voice(f"{title}. {value}. {action.replace(chr(10), '. ')}. Try it at Useful Web Lab.", audio)
+    run("ffmpeg", "-loglevel", "error", "-y", "-filter_threads", "2", "-i", str(raw), "-i", str(audio),
+        "-vf", ",".join(overlays), "-af", "loudnorm=I=-16:TP=-1.5:LRA=11,apad",
+        "-t", "24", "-c:a", "aac", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(final))
     probe = json.loads(run("ffprobe", "-v", "error", "-show_streams", "-show_format", "-of", "json", str(final)))
     stream = probe["streams"][0]
     if (stream["width"], stream["height"]) != (540, 960) or not 23 <= float(probe["format"]["duration"]) <= 25:
@@ -308,14 +322,22 @@ def render(app, raw, details=None):
 
 
 def main():
+    from playwright.sync_api import Error as BrowserError
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--sample", choices=DEMOS)
-    parser.add_argument("--chromium")
+    parser.add_argument("--chromium", default=os.environ.get("SHORTS_CHROMIUM"))
     args = parser.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
+    for output_name in ("report.json", "final.mp4"):
+        (OUT / output_name).unlink(missing_ok=True)
     now = datetime.now(timezone.utc)
     day = now.astimezone(LOCAL).date().isoformat()
     records = {p.stem: json.loads(p.read_text()) for p in HISTORY.glob("*.json")}
+    for path in Path("history/production").glob("*.json"):
+        record = json.loads(path.read_text())
+        if record.get("format") == "showcase":
+            records[record["content_key"]] = {**record, "attempt_day": record["day"]}
     if args.sample:
         app, item = args.sample, None
     else:
@@ -332,7 +354,12 @@ def main():
             try:
                 _, url = live_release(app, item["sha256"], path)
                 check_profile_destination(url)
-            except (OSError, ValueError) as error:
+                details = release_demo(item)
+                raw = demo(app, url, item["sha256"], args.chromium, details[3])
+                render(app, raw, details)
+                live_release(app, item["sha256"], path)
+            except (OSError, ValueError, BrowserError, subprocess.CalledProcessError) as error:
+                (OUT / "final.mp4").unlink(missing_ok=True)
                 skipped.append(f"{app}: {error}")
                 feed = {**feed, "releases": [entry for entry in feed["releases"] if entry is not item]}
                 continue
@@ -341,9 +368,9 @@ def main():
     path, title, value, sample = details
     sha, url = live_release(app, item["sha256"] if item else None, path)
     check_profile_destination(url)
-    render(app, demo(app, url, sha, args.chromium, sample), details)
-    # Reject a release that changed while the demo was recorded.
-    live_release(app, sha, path)
+    if args.sample:
+        render(app, demo(app, url, sha, args.chromium, sample), details)
+        live_release(app, sha, path)
     details = {"state": "verified", "sample": bool(args.sample), "project": app,
                "sha256": sha, "url": url, "attempt_day": day,
                "title": f"{title}: {value} #Shorts", "value": value, "path": path}

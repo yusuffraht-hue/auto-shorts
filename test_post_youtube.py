@@ -61,9 +61,16 @@ class PublisherTests(unittest.TestCase):
         self.assertEqual(proxy.call_count, 3)
         self.assertEqual(sleep.call_count, 2)
 
+    def test_proxy_reports_explicit_youtube_quota_error(self):
+        with patch.object(self.publisher, "_post", return_value={
+            "status": 403, "data": {"error": {"errors": [{"reason": "quotaExceeded"}]}}
+        }):
+            with self.assertRaisesRegex(RuntimeError, "YouTube API quota exhausted"):
+                self.publisher._proxy("channels", "GET", {"mine": "true"})
+
     def test_wrong_channel_fails_preflight(self):
         with (patch("post_youtube.requests.get") as get,
-              patch.object(self.publisher, "_proxy", return_value={"items": [{"id": "other"}]})):
+              patch.object(self.publisher, "_execute", return_value={"items": [{"id": "other"}]})):
             get.return_value.ok = True
             get.return_value.json.return_value = {
                 "items": [{"id": "account", "user_id": "owner"}],

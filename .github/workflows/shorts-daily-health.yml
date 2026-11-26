@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   report:
-    if: vars.YOUTUBE_SIX_FORMATS == 'true'
+    if: vars.SHORTS_DAILY_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

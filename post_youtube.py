@@ -44,8 +44,24 @@ class YouTubePublisher:
             payload["body"] = body
         result = self._post("/tools/execute/proxy", payload)
         if result.get("status") != 200:
+            data = result.get("data")
+            error = data.get("error") if isinstance(data, dict) else None
+            reasons = error.get("errors", []) if isinstance(error, dict) else []
+            if any(isinstance(item, dict) and item.get("reason") in {"quotaExceeded", "dailyLimitExceeded"}
+                   for item in reasons):
+                raise RuntimeError(f"YouTube API quota exhausted during {method} {resource}")
             raise RuntimeError(f"YouTube {method} {resource} returned status {result.get('status')}")
         return result["data"]
+
+    def _execute(self, tool, arguments):
+        result = self._post(f"/tools/execute/{tool}", {
+            "connected_account_id": self.account_id, "user_id": self.user_id,
+            "arguments": arguments,
+        })
+        if result.get("successful") is not True:
+            raise RuntimeError(f"Composio did not confirm {tool}")
+        data = result.get("data") or {}
+        return data.get("data") or data
 
     def preflight(self):
         params = {"toolkit_slugs": "youtube", "statuses": "ACTIVE", "limit": 2}
@@ -72,7 +88,7 @@ class YouTubePublisher:
         self.user_id = account.get("user_id")
         if not self.user_id:
             raise RuntimeError("Composio did not return the connected account owner")
-        result = self._proxy("channels", "GET", {"part": "id", "mine": "true"})
+        result = self._execute("YOUTUBE_LIST_CHANNELS", {"part": "id", "mine": True})
         if [item["id"] for item in result.get("items", [])] != [self.channel_id]:
             raise RuntimeError("Composio is connected to a different YouTube channel")
 
@@ -140,15 +156,7 @@ class YouTubePublisher:
         staged = self._stage(path)
         # Preserve an ambiguous upload outcome. A retry could create a duplicate.
         receipt.write_text(json.dumps({"state": "upload_attempted"}))
-        result = self._post(f"/tools/execute/{UPLOAD_TOOL}", {
-            "connected_account_id": self.account_id,
-            "user_id": self.user_id,
-            "arguments": {**metadata["snippet"], "privacyStatus": "private", "videoFile": staged},
-        })
-        if result.get("successful") is not True:
-            raise RuntimeError("Composio did not confirm the private YouTube upload")
-        data = result.get("data") or {}
-        data = data.get("data") or data
+        data = self._execute(UPLOAD_TOOL, {**metadata["snippet"], "privacyStatus": "private", "videoFile": staged})
         video = data.get("video") or data
         video_id = video.get("id")
         if not isinstance(video_id, str) or not video_id:

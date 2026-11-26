@@ -18,3 +18,20 @@ def due_slot(now, config=None):
         if local.strftime("%H:%M") == slot["time"]:
             return {"format": slot["format"], "key": local.date().isoformat() + ":" + slot["format"]}
     return None
+
+
+def scheduled_slot(cron, started_at):
+    """Recover the intended Calgary date from the event cron and run creation time."""
+    minute, hour, *rest = cron.split()
+    if rest != ["*", "*", "*"]:
+        raise ValueError("Expected a daily cron expression")
+    slot_time = started_at.astimezone(timezone.utc).replace(
+        hour=int(hour), minute=int(minute), second=0, microsecond=0)
+    if slot_time > started_at:
+        slot_time -= timedelta(days=1)
+    if started_at - slot_time >= timedelta(hours=2):
+        raise ValueError("Scheduled run was too late for its posting slot")
+    slot = due_slot(slot_time)
+    if not slot:
+        raise ValueError("Cron does not match a configured posting slot")
+    return slot

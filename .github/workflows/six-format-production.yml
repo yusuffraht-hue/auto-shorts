@@ -1,20 +1,22 @@
-name: Six-format production
+name: Eight-format production
 
 on:
   schedule:
-    # Alberta Time is permanently UTC−6. Use the triggering cron to route delayed runs.
+    # Alberta Time stays at UTC-6 year-round.
     - cron: "0 14 * * *"
     - cron: "0 16 * * *"
     - cron: "0 18 * * *"
     - cron: "0 20 * * *"
     - cron: "0 22 * * *"
     - cron: "0 0 * * *"
+    - cron: "0 2 * * *"
+    - cron: "0 3 * * *"
   workflow_dispatch:
     inputs:
       format:
         description: Episode format
         type: choice
-        options: [world, kingdom, town, power, mystery, analysis]
+        options: [world, kingdom, town, power, mystery, analysis, showcase, trending]
         required: true
       upload:
         description: Upload and verify one private YouTube video
@@ -22,17 +24,23 @@ on:
         default: false
 
 permissions:
-  contents: write
+  actions: read
+  contents: read
   models: read
 
 concurrency:
-  group: six-format-production
+  group: shorts-${{ github.event_name == 'schedule' && 'scheduled' || github.run_id }}
+  cancel-in-progress: false
 
 jobs:
-  produce:
-    if: github.event_name == 'workflow_dispatch' || vars.YOUTUBE_SIX_FORMATS == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 50
+  render:
+    if: github.event_name == 'workflow_dispatch' || vars.SHORTS_DAILY_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    outputs:
+      format: ${{ steps.route.outputs.format }}
+      slot: ${{ steps.route.outputs.slot }}
+      eligible: ${{ steps.render.outputs.eligible }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -43,83 +51,98 @@ jobs:
         env:
           REQUESTED_FORMAT: ${{ inputs.format }}
           CRON: ${{ github.event.schedule }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          python - <<'PY' >> "$GITHUB_OUTPUT"
-          import os
-          from datetime import datetime, timezone
-          from posting_schedule import due_slot
-
-          kind = os.environ["REQUESTED_FORMAT"]
-          if not kind:
-              minute, hour, *_ = os.environ["CRON"].split()
-              configured_slot = datetime(2026, 12, 1, int(hour), int(minute), tzinfo=timezone.utc)
-              kind = due_slot(configured_slot)["format"]
-          print("format=" + kind)
-          print("series=" + ("anime" if kind == "analysis" else "town"))
-          PY
-      - name: Guard against duplicate uploads
-        if: ${{ github.event_name == 'schedule' || inputs.upload }}
-        run: test "$GITHUB_RUN_ATTEMPT" -eq 1
-      - run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core blender
-      - run: pip install -r requirements.txt
-      - name: Make the short
-        id: make
-        run: python generate.py
+          if [[ "$GITHUB_EVENT_NAME" == schedule ]]; then
+            RUN_CREATED_AT=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq '.created_at')
+            export RUN_CREATED_AT
+          fi
+          python shorts_release.py route
+      - name: Install rendering tools
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SERIES: ${{ steps.route.outputs.series }}
-          ORIGINAL_FORMAT: ${{ steps.route.outputs.format }}
-          USE_BLENDER: ${{ steps.route.outputs.series == 'town' && '1' || '0' }}
-          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && !inputs.upload }}
-          YOUTUBE_PROVIDER: composio
-          COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
-          COMPOSIO_YOUTUBE_ACCOUNT_ID: ${{ vars.COMPOSIO_YOUTUBE_ACCOUNT_ID }}
-          YOUTUBE_CHANNEL_ID: ${{ vars.YOUTUBE_CHANNEL_ID }}
-          PRIVACY: ${{ github.event_name == 'schedule' && 'public' || 'private' }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_FREE_CONFIRMED: ${{ vars.CLOUDFLARE_FREE_CONFIRMED || 'false' }}
+          FORMAT: ${{ steps.route.outputs.format }}
+        run: |
+          packages=(ffmpeg fonts-dejavu-core)
+          case "$FORMAT" in
+            analysis|showcase|trending) ;;
+            *) packages+=(blender) ;;
+          esac
+          sudo apt-get -o Acquire::Retries=1 update
+          sudo apt-get -o Acquire::Retries=1 install -y "${packages[@]}"
+          pip install -r requirements.txt Pillow
+          if [[ "$FORMAT" == showcase ]]; then
+            pip install playwright
+            python -m playwright install --with-deps chromium
+          fi
+      - name: Render and verify media
+        id: render
+        env:
+          FORMAT: ${{ steps.route.outputs.format }}
+          EDITORIAL_RESERVE_ONLY: ${{ inputs.upload && '1' || '0' }}
+          RENDER_CHECK: ${{ inputs.upload && '1' || '0' }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python shorts_release.py render "$FORMAT"
+          if [[ -s out/media-report.json && -s out/youtube-pending.json ]]; then
+            echo 'eligible=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'eligible=false' >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: ${{ steps.route.outputs.format || 'diagnostics' }}
+          name: short-render
           path: |
             out/final.mp4
             out/story.txt
             out/quality-report.json
-            out/youtube-receipt.json
-          retention-days: 7
+            out/media-report.json
+            out/youtube-pending.json
+          retention-days: 3
           if-no-files-found: ignore
-      - name: Record scheduled publishing outcome
-        if: ${{ always() && !cancelled() && github.run_attempt == 1 && github.event_name == 'schedule' && steps.route.outcome == 'success' }}
-        run: |
+
+  publish:
+    needs: render
+    if: >-
+      github.run_attempt == 1 && needs.render.outputs.eligible == 'true' &&
+      ((github.event_name == 'workflow_dispatch' && inputs.upload) ||
+       (github.event_name == 'schedule' && vars.SHORTS_PUBLIC_VERIFIED == 'true'))
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v7
+        with:
+          name: short-render
+          path: out
+      - run: |
+          pip install requests
+          command -v ffprobe || (sudo apt-get update && sudo apt-get install -y ffmpeg)
           git config user.name auto-shorts-bot
           git config user.email bot@users.noreply.github.com
-          python - <<'PY'
-          import json
-          import os
-          from pathlib import Path
-
-          receipt_path = Path("out/youtube-receipt.json")
-          receipt = json.loads(receipt_path.read_text()) if receipt_path.exists() else {}
-          run_id = os.environ["GITHUB_RUN_ID"]
-          record = {
-              "run_id": run_id,
-              "format": os.environ["STORY_FORMAT"],
-              "generation_outcome": os.environ["GENERATION_OUTCOME"],
-              "upload_state": receipt.get("state", "no_receipt"),
-          }
-          if receipt.get("state") == "verified" and receipt.get("privacyStatus") == "public":
-              record["public_video_id"] = receipt["video_id"]
-          ledger = Path("history/publishing")
-          ledger.mkdir(parents=True, exist_ok=True)
-          (ledger / f"{run_id}.json").write_text(json.dumps(record, indent=2) + "\n")
-          PY
-          git add history
-          git diff --cached --quiet && exit 0
-          git commit -m "history: ${STORY_FORMAT}"
-          git pull --rebase origin main
-          git push origin HEAD:main
+      - name: Publish once and verify
         env:
-          STORY_FORMAT: ${{ steps.route.outputs.format }}
-          GENERATION_OUTCOME: ${{ steps.make.outcome }}
+          FORMAT: ${{ needs.render.outputs.format }}
+          SLOT: ${{ needs.render.outputs.slot }}
+          PUBLISH_MODE: ${{ github.event_name == 'schedule' && 'public' || 'canary' }}
+          SHORTS_PUBLIC_VERIFIED: ${{ vars.SHORTS_PUBLIC_VERIFIED }}
+          COMPOSIO_ZERO_COST_CONFIRMED: ${{ vars.COMPOSIO_ZERO_COST_CONFIRMED }}
+          LAB_PROMO_PROFILE_LINK_VERIFIED: ${{ vars.LAB_PROMO_PROFILE_LINK_VERIFIED }}
+          COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
+          COMPOSIO_YOUTUBE_ACCOUNT_ID: ${{ vars.COMPOSIO_YOUTUBE_ACCOUNT_ID }}
+          YOUTUBE_CHANNEL_ID: ${{ vars.YOUTUBE_CHANNEL_ID }}
+        run: python shorts_release.py publish "$FORMAT" "$SLOT"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: youtube-receipt
+          path: out/youtube-receipt.json
+          retention-days: 7
+          if-no-files-found: ignore
