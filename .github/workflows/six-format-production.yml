@@ -1,5 +1,5 @@
 name: Eight-format production
-run-name: Short ${{ github.event.schedule || inputs.format }}
+run-name: Short ${{ github.event.schedule || inputs.recovery_slot || inputs.format }}
 
 on:
   schedule:
@@ -28,6 +28,10 @@ on:
         type: choice
         options: [world, kingdom, town, power, mystery, analysis, showcase, trending]
         required: true
+      recovery_slot:
+        description: Recover a due Calgary slot using YYYY-MM-DD:format
+        type: string
+        default: ""
       upload:
         description: Upload and verify one private YouTube video
         type: boolean
@@ -38,12 +42,16 @@ permissions:
   contents: read
 
 concurrency:
-  group: shorts-${{ github.event_name == 'schedule' && 'scheduled' || github.run_id }}
+  group: shorts-${{ (github.event_name == 'schedule' || inputs.recovery_slot) && 'scheduled' || github.run_id }}
   cancel-in-progress: false
 
 jobs:
   render:
-    if: github.event_name == 'workflow_dispatch' || vars.SHORTS_DAILY_ENABLED == 'true'
+    if: >-
+      (github.event_name == 'workflow_dispatch' && !inputs.recovery_slot) ||
+      (vars.SHORTS_DAILY_ENABLED == 'true' && github.ref == 'refs/heads/main' &&
+       (github.event_name == 'schedule' ||
+        (inputs.recovery_slot && github.actor == github.repository_owner && !inputs.upload)))
     runs-on: ubuntu-24.04
     timeout-minutes: 55
     outputs:
@@ -59,10 +67,11 @@ jobs:
         id: route
         env:
           REQUESTED_FORMAT: ${{ inputs.format }}
+          RECOVERY_SLOT: ${{ inputs.recovery_slot }}
           CRON: ${{ github.event.schedule }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [[ "$GITHUB_EVENT_NAME" == schedule ]]; then
+          if [[ "$GITHUB_EVENT_NAME" == schedule || -n "$RECOVERY_SLOT" ]]; then
             RUN_CREATED_AT=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq '.created_at')
             export RUN_CREATED_AT
             git fetch --no-tags --depth=1 origin main
@@ -116,8 +125,8 @@ jobs:
     needs: render
     if: >-
       github.run_attempt == 1 && needs.render.outputs.eligible == 'true' &&
-      ((github.event_name == 'workflow_dispatch' && inputs.upload) ||
-       (github.event_name == 'schedule' && vars.SHORTS_PUBLIC_VERIFIED == 'true'))
+      ((github.event_name == 'workflow_dispatch' && inputs.upload && !inputs.recovery_slot) ||
+       ((github.event_name == 'schedule' || inputs.recovery_slot) && vars.SHORTS_PUBLIC_VERIFIED == 'true'))
     permissions:
       contents: write
     runs-on: ubuntu-24.04
@@ -143,7 +152,8 @@ jobs:
         env:
           FORMAT: ${{ needs.render.outputs.format }}
           SLOT: ${{ needs.render.outputs.slot }}
-          PUBLISH_MODE: ${{ github.event_name == 'schedule' && 'public' || 'canary' }}
+          PUBLISH_MODE: ${{ (github.event_name == 'schedule' || inputs.recovery_slot) && 'public' || 'canary' }}
+          RECOVERY_SLOT: ${{ inputs.recovery_slot }}
           SHORTS_PUBLIC_VERIFIED: ${{ vars.SHORTS_PUBLIC_VERIFIED }}
           COMPOSIO_ZERO_COST_CONFIRMED: ${{ vars.COMPOSIO_ZERO_COST_CONFIRMED }}
           LAB_PROMO_PROFILE_LINK_VERIFIED: ${{ vars.LAB_PROMO_PROFILE_LINK_VERIFIED }}

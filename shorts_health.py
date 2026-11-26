@@ -6,7 +6,7 @@ from pathlib import Path
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from posting_schedule import scheduled_slot
+from posting_schedule import recovery_slot, scheduled_slot
 
 CALGARY = timezone(timedelta(hours=-6))
 
@@ -34,9 +34,13 @@ def one_run_per_slot(day, runs):
     for run in runs:
         if not run["display_title"].startswith("Short "):
             continue
-        cron = run["display_title"].removeprefix("Short ")
+        trigger = run["display_title"].removeprefix("Short ")
         try:
-            slot = scheduled_slot(cron, datetime.fromisoformat(run["created_at"]))
+            started = datetime.fromisoformat(run["created_at"])
+            if run.get("event") == "workflow_dispatch":
+                slot = recovery_slot(trigger, started)
+            else:
+                slot = scheduled_slot(trigger, started)
         except ValueError:
             continue
         if not slot["key"].startswith(day.isoformat() + ":"):
@@ -52,7 +56,6 @@ def main():
     start = datetime.combine(day, time.min, CALGARY).astimezone(timezone.utc)
     end = start + timedelta(days=1, hours=2) - timedelta(seconds=1)
     filters = urlencode({
-        "event": "schedule",
         "branch": "main",
         "created": f"{start:%Y-%m-%dT%H:%M:%SZ}..{end:%Y-%m-%dT%H:%M:%SZ}",
         "per_page": 100,

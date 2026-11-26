@@ -28,5 +28,12 @@ class ShortsHealthTests(unittest.TestCase):
             {"display_title": "Short 19 14 * * *", "created_at": "2026-11-26T14:21:00Z", "conclusion": "success"},
             {"display_title": "Short 19 0 * * *", "created_at": "2026-11-27T00:26:00Z", "conclusion": "success"},
         ]
+        runs.extend([
+            {"display_title": "Short 2026-11-26:showcase", "created_at": "2026-11-27T02:45:00Z",
+             "event": "workflow_dispatch", "conclusion": "success"},
+            {"display_title": "Short world", "created_at": "2026-11-26T14:40:00Z",
+             "event": "workflow_dispatch", "conclusion": "success"},
+        ])
         self.assertEqual(one_run_per_slot(date(2026, 11, 26), runs),
-                         {"2026-11-26:world": runs[1], "2026-11-26:analysis": runs[2]})
+                         {"2026-11-26:world": runs[1], "2026-11-26:analysis": runs[2],
+                          "2026-11-26:showcase": runs[3]})

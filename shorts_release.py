@@ -9,7 +9,7 @@ from datetime import datetime, time, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from posting_schedule import scheduled_slot
+from posting_schedule import recovery_slot, scheduled_slot
 
 OUT = Path("out")
 LEDGER = Path("history/production")
@@ -87,14 +87,31 @@ def verify_media(path):
     dump(path.with_name("media-report.json"), probe)
 
 
+def authorized_recovery(slot):
+    actor = os.environ.get("GITHUB_ACTOR", "")
+    return (os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch"
+            and os.environ.get("GITHUB_REF") == "refs/heads/main"
+            and bool(actor) and actor == os.environ.get("GITHUB_REPOSITORY_OWNER")
+            and bool(slot) and slot == os.environ.get("RECOVERY_SLOT"))
+
+
 def route():
     kind = os.environ.get("REQUESTED_FORMAT")
     blocked = None
-    if kind:
+    recover = os.environ.get("RECOVERY_SLOT")
+    if kind and not recover:
         slot = {"format": kind, "key": "manual"}
     else:
         stamp = os.environ["RUN_CREATED_AT"] or datetime.now(timezone.utc).isoformat()
-        slot = scheduled_slot(os.environ["CRON"], datetime.fromisoformat(stamp))
+        started = datetime.fromisoformat(stamp)
+        if recover:
+            if not authorized_recovery(recover):
+                raise ValueError("Recovery requires the repository owner and main branch")
+            slot = recovery_slot(recover, started)
+            if kind != slot["format"]:
+                raise ValueError("Requested format does not match the recovery slot")
+        else:
+            slot = scheduled_slot(os.environ["CRON"], started)
         blocked = scheduled_block(slot["key"], datetime.now(timezone.utc))
     if blocked:
         print(blocked)
@@ -161,12 +178,12 @@ def publish(kind, slot):
         raise RuntimeError("Publishing requires an authorized first attempt")
     if mode == "public" and (
         kind not in FORMATS or not re.fullmatch(r"\d{4}-\d{2}-\d{2}:" + kind, slot)
-        or os.environ.get("GITHUB_EVENT_NAME") != "schedule"
+        or (os.environ.get("GITHUB_EVENT_NAME") != "schedule" and not authorized_recovery(slot))
         or os.environ.get("GITHUB_REF") != "refs/heads/main"
         or os.environ.get("SHORTS_PUBLIC_VERIFIED") != "true"
         or os.environ.get("COMPOSIO_ZERO_COST_CONFIRMED") != "true"
     ):
-        raise RuntimeError("Public mode requires a verified scheduled main-branch run")
+        raise RuntimeError("Public mode requires a verified scheduled or recovery run on main")
     manifest_path = OUT / "youtube-pending.json"
     report = json.loads((OUT / "quality-report.json").read_text())
     if report.get("passed") is not True or not manifest_path.exists():

@@ -38,3 +38,22 @@ def scheduled_slot(cron, started_at):
     if not slot:
         raise ValueError("Cron does not match a configured posting slot")
     return slot
+
+
+def recovery_slot(key, started_at):
+    """Allow recovery of today's original slot between 30 and 120 minutes late."""
+    if started_at.tzinfo is None:
+        raise ValueError("Timezone-aware datetime required")
+    config = json.loads(Path(__file__).with_name("posting_schedule.json").read_text())
+    local = started_at.astimezone(timezone(timedelta(hours=-6)))
+    day, separator, kind = key.partition(":")
+    if not separator or day != local.date().isoformat():
+        raise ValueError("Recovery must use today's Calgary slot")
+    for slot in config["slots"]:
+        if slot["format"] == kind:
+            hour, minute = map(int, slot["time"].split(":"))
+            planned = local.replace(hour=hour, minute=minute, second=0, microsecond=0)
+            if timedelta(minutes=30) <= local - planned < timedelta(hours=2):
+                return {"format": kind, "key": key}
+            raise ValueError("Outside the recovery window for this posting slot")
+    raise ValueError("Unknown recovery slot")

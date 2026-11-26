@@ -2,8 +2,8 @@ import unittest
 from datetime import datetime, timezone
 from unittest.mock import patch
 
-from posting_schedule import scheduled_slot
-from shorts_release import already_reserved, quota_active, quota_reset, scheduled_block
+from posting_schedule import recovery_slot, scheduled_slot
+from shorts_release import already_reserved, authorized_recovery, quota_active, quota_reset, scheduled_block
 from trend_video import select_topic
 
 
@@ -18,6 +18,31 @@ class ShortsReleaseTests(unittest.TestCase):
                                  {"format": kind, "key": f"2026-11-26:{kind}"})
         with self.assertRaisesRegex(ValueError, "too late"):
             scheduled_slot("0 3 * * *", datetime(2026, 11, 27, 8, tzinfo=timezone.utc))
+
+    def test_dispatch_recovers_original_slot_only_in_the_due_window(self):
+        key = "2026-11-26:showcase"
+        now = datetime(2026, 11, 27, 2, 45, tzinfo=timezone.utc)
+        self.assertEqual(recovery_slot(key, now), {"format": "showcase", "key": key})
+        for invalid, stamp in [
+            ("2026-11-25:showcase", now),
+            ("2026-11-26:trending", now),
+            (key, datetime(2026, 11, 27, 4, tzinfo=timezone.utc)),
+            ("2026-11-26:unknown", now),
+        ]:
+            with self.subTest(slot=invalid, time=stamp), self.assertRaises(ValueError):
+                recovery_slot(invalid, stamp)
+
+    def test_dispatch_requires_owner_main_and_exact_slot(self):
+        key = "2026-11-26:power"
+        context = {"GITHUB_EVENT_NAME": "workflow_dispatch", "GITHUB_REF": "refs/heads/main",
+                   "GITHUB_ACTOR": "owner", "GITHUB_REPOSITORY_OWNER": "owner", "RECOVERY_SLOT": key}
+        with patch.dict("os.environ", context, clear=True):
+            self.assertTrue(authorized_recovery(key))
+            self.assertFalse(authorized_recovery("2026-11-26:town"))
+        for changes in [{"GITHUB_ACTOR": "other"}, {"GITHUB_REF": "refs/heads/topic"},
+                        {"RECOVERY_SLOT": ""}]:
+            with self.subTest(changes=changes), patch.dict("os.environ", {**context, **changes}, clear=True):
+                self.assertFalse(authorized_recovery(key))
 
     def test_backup_retains_the_primary_slot_and_cutoff(self):
         creation = datetime(2026, 11, 27, 2, 25, tzinfo=timezone.utc)
