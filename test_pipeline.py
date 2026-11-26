@@ -69,6 +69,23 @@ class QualityGateTests(unittest.TestCase):
         self.assertFalse(any("too similar" in issue for issue in report["issues"]))
 
 
+class EditorialReserveTests(unittest.TestCase):
+    def test_provider_failure_uses_a_distinct_quality_checked_reserve_once_per_format(self):
+        for kind in (*series.ORIGINAL_FORMATS, "analysis"):
+            with self.subTest(format=kind):
+                history = {"episodes": [], "works": {}, "log": {}}
+                with (patch.object(generate, "SERIES", "anime" if kind == "analysis" else "town"),
+                      patch.dict(os.environ, {"ORIGINAL_FORMAT": kind, "FORMAT": "auto", "WORK": "auto"}),
+                      patch.object(generate, "call_llm", side_effect=RuntimeError("provider unavailable"))):
+                    story = generate.write_script(history)
+                    self.assertTrue(story["quality_report"]["passed"])
+                    self.assertEqual(history["episodes"][0]["kind"], kind)
+                    self.assertIn("reserve_id", history["episodes"][0])
+                    with self.assertRaisesRegex(RuntimeError, "quality gate"):
+                        generate.write_script(history)
+                    self.assertEqual(len(history["episodes"]), 1)
+
+
 class LLMValidationTests(unittest.TestCase):
     def make_payload(self, count=10):
         return {

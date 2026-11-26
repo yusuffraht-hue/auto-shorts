@@ -6,6 +6,7 @@ import asyncio, json, os, pathlib, random, re, shutil, subprocess, textwrap, tim
 import edge_tts
 import requests
 from llm import call_llm
+import editorial
 import series
 import quality
 
@@ -32,12 +33,51 @@ SHOT_COMPOSITIONS = (
 )
 
 
+def accepted_script(meta, data, hist, report):
+    data = series.finish(meta, data, hist)
+    data["quality_report"] = report
+    data["style"], data["voice"] = meta["style"], meta["voice"]
+    data["hero"] = data.get("hero") or meta["hero_default"]
+    return data
+
+
+def reserve_script(hist, meta):
+    """Use a reviewed script once, with the same gate as provider drafts."""
+    entries = json.loads(pathlib.Path(__file__).with_name("editorial_reserve.json").read_text())
+    data = entries.get(meta["kind"])
+    if not data:
+        return None
+    reserve_id = data["title"]
+    if any(episode.get("reserve_id") == reserve_id for episode in hist["episodes"]):
+        return None
+    if meta["series"] == "anime":
+        topic_id = data.pop("topic_id")
+        avoid = {topic["id"] for topic in editorial.load_topics() if topic["id"] != topic_id}
+        try:
+            meta = series.build(SERIES, hist, avoid)
+        except RuntimeError:
+            return None
+        if meta.get("topic_id") != topic_id:
+            return None
+    report = quality.check(data, hist)
+    if not report["passed"]:
+        print("Editorial reserve failed quality checks:", report["issues"])
+        return None
+    print("Using editorial reserve for", meta["kind"], reserve_id)
+    data = accepted_script(meta, data, hist, report)
+    hist["episodes"][-1]["reserve_id"] = reserve_id
+    return data
+
+
 def write_script(hist):
     """Generate, quality-check and repair a story before recording it in history."""
     avoid = set()
     last_provider_error = None
     for _ in range(5):
-        meta = series.build(SERIES, hist, avoid)
+        try:
+            meta = series.build(SERIES, hist, avoid)
+        except RuntimeError:
+            break
         feedback = ""
         for _ in range(2):
             try:
@@ -52,11 +92,7 @@ def write_script(hist):
                 break
             report = quality.check(data, hist)
             if report["passed"]:
-                data = series.finish(meta, data, hist)
-                data["quality_report"] = report
-                data["style"], data["voice"] = meta["style"], meta["voice"]
-                data["hero"] = data.get("hero") or meta["hero_default"]
-                return data
+                return accepted_script(meta, data, hist, report)
             print("story quality gate rejected draft:", report["issues"])
             feedback = (
                 "\n\nQUALITY REPAIR: Correct the specific issues below in the previous draft. "
@@ -66,7 +102,9 @@ def write_script(hist):
                 + "\nPrevious draft JSON:\n"
                 + json.dumps(data, ensure_ascii=True)
             )
-        avoid.add(meta.get("work"))
+        avoid.add(meta.get("topic_id") or meta.get("work"))
+        if reserve := reserve_script(hist, meta):
+            return reserve
     raise RuntimeError("could not generate a story that passed the quality gate") from last_provider_error
 
 
@@ -285,7 +323,6 @@ if __name__ == "__main__":
     if not dry_run and not queue_only and os.environ.get("YOUTUBE_PROVIDER") == "composio":
         from post_youtube import publisher_from_env
         publisher = publisher_from_env()
-        publisher.preflight()
     elif not dry_run and not queue_only:
         if not all(os.environ.get(k) for k in ("YT_CLIENT_ID", "YT_CLIENT_SECRET", "YT_REFRESH_TOKEN")):
             raise RuntimeError("YouTube credentials missing; use dry_run for render-only tests")
@@ -310,7 +347,14 @@ if __name__ == "__main__":
         (OUT / "youtube-pending.json").write_text(json.dumps(manifest, indent=2))
         print("Render queued for authorized upload; history unchanged.")
     elif publisher is not None:
-        publisher.publish(video, _youtube_upload_body(data), OUT / "youtube-receipt.json")
+        # Keep the checked render as an artifact when YouTube rejects preflight.
+        receipt = OUT / "youtube-receipt.json"
+        try:
+            publisher.preflight()
+        except RuntimeError as error:
+            receipt.write_text(json.dumps({"state": "preflight_blocked", "reason": str(error)}))
+            raise
+        publisher.publish(video, _youtube_upload_body(data), receipt)
         series.save(SERIES, hist)
     elif creds is not None:
         upload_youtube(video, data, creds)

@@ -44,6 +44,12 @@ class YouTubePublisher:
             payload["body"] = body
         result = self._post("/tools/execute/proxy", payload)
         if result.get("status") != 200:
+            data = result.get("data")
+            error = data.get("error") if isinstance(data, dict) else None
+            reasons = error.get("errors", []) if isinstance(error, dict) else []
+            if any(isinstance(item, dict) and item.get("reason") in {"quotaExceeded", "dailyLimitExceeded"}
+                   for item in reasons):
+                raise RuntimeError(f"YouTube API quota exhausted during {method} {resource}")
             raise RuntimeError(f"YouTube {method} {resource} returned status {result.get('status')}")
         return result["data"]
 
