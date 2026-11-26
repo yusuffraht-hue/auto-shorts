@@ -4,7 +4,7 @@ import os
 import subprocess
 from datetime import datetime
 
-from lab_promo import DEMOS, HISTORY, LOCAL, OUT, check_profile_destination, live_release
+from lab_promo import HISTORY, LOCAL, OUT, check_profile_destination, live_release
 
 
 def save(path, state):
@@ -57,7 +57,7 @@ def main():
     if not can_post:
         return
     app, sha = report["project"], report["sha256"]
-    _, url = live_release(app, sha)
+    _, url = live_release(app, sha, report["path"])
     if url != report["url"]:
         raise ValueError("Promotion URL differs from the verified site")
     check_profile_destination(url)
@@ -73,7 +73,7 @@ def main():
     metadata = {
         "snippet": {
             "title": report["title"][:100],
-            "description": f"{DEMOS[app][2]}. Visit Useful Web Lab from the channel profile.\n{url}\n\nLab release: {key}",
+            "description": f"{report['value']}. Visit Useful Web Lab from the channel profile.\n{url}\n\nLab release: {key}",
             "categoryId": "24",
         },
         "status": {"privacyStatus": "public", "containsSyntheticMedia": True,

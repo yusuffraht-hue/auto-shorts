@@ -19,7 +19,7 @@ Useful Web Lab should deploy a version 1 JSON feed at `https://yusuffraht-hue.gi
 }
 ```
 
-Use `kind: "feature"` for a meaningful update. Signal Garden uses the project ID `signal-garden` and path `signal-garden/`. The promo workflow skips projects without a reviewed live demo. To promote a new app, add a demo that uses public sample data and verifies the main action against the live release.
+Use `kind: "feature"` for a meaningful update. Signal Garden uses the project ID `signal-garden` and path `signal-garden/`. For any new app, serve it at `<project-id>/` with its own `release.json` containing the matching `app` ID and HTML `sha256`. Link it from the site root. Add a `demo` object to its feed entry with `title`, `value`, and `action` for the captions (up to 32 characters each), `buttons` with one to four exact accessible button labels, and `expected` with exact text that becomes visible after those clicks. Use only built-in public sample data. Demos that require a sign-in, file selection, or third-party requests are skipped.
 
 ## Supported link and activation
 

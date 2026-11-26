@@ -69,3 +69,12 @@ class LabPromoTests(unittest.TestCase):
             with patch("lab_promo_publish.recent_uploads", return_value=uploads), patch("lab_promo_publish.save") as save:
                 reconcile(object(), pending)
                 save.assert_not_called()
+
+    def test_accepts_another_public_app_with_a_sample_demo(self):
+        release = {**RELEASE, "project": "timer", "path": "timer/",
+                   "demo": {"title": "Timer", "value": "Start a focus session",
+                            "action": "Start the timer", "buttons": ["Try sample", "Start"],
+                            "expected": "Timer running"}}
+        self.assertEqual(self.candidate([release]), release)
+        self.assertIsNone(self.candidate([{**release, "path": "../timer/"}]))
+        self.assertIsNone(self.candidate([{**release, "demo": None}]))

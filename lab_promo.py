@@ -44,11 +44,12 @@ def select(feed, records, day, now):
         app, sha = item.get("project"), item.get("sha256")
         if item.get("kind") not in {"launch", "feature"}:
             continue
-        if not isinstance(app, str) or app not in DEMOS:
-            reasons.append("Release has no reviewed demo")
+        try:
+            release_demo(item)
+        except ValueError as error:
+            reasons.append(str(error))
             continue
-        path = DEMOS[app][0]
-        if item.get("path") != path or not isinstance(sha, str) or not re.fullmatch("[0-9a-f]{64}", sha):
+        if not isinstance(sha, str) or not re.fullmatch("[0-9a-f]{64}", sha):
             reasons.append("Invalid path or checksum")
             continue
         try:
@@ -66,8 +67,34 @@ def select(feed, records, day, now):
     return (max(candidates, key=lambda entry: (entry[0], entry[1]))[2] if candidates else None), reasons
 
 
-def live_release(app, expected=None):
-    url = SITE + DEMOS[app][0]
+def release_demo(item):
+    app, path = item.get("project"), item.get("path")
+    if not isinstance(app, str) or not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,47}", app):
+        raise ValueError("Invalid public project ID")
+    if app in DEMOS:
+        if path != DEMOS[app][0]:
+            raise ValueError("Unexpected app path")
+        return (*DEMOS[app], None)
+    if path != f"{app}/":
+        raise ValueError("Unexpected app path")
+    demo = item.get("demo")
+    if not isinstance(demo, dict):
+        raise ValueError("New project has no public sample demo")
+    title, value, action = (demo.get(key) for key in ("title", "value", "action"))
+    expected, buttons = demo.get("expected"), demo.get("buttons")
+
+    def valid_text(text, limit):
+        return isinstance(text, str) and 0 < len(text) <= limit and text.isprintable()
+    if not all(valid_text(text, 32) for text in (title, value, action)):
+        raise ValueError("Invalid promo caption")
+    if (not valid_text(expected, 120) or not isinstance(buttons, list)
+            or not 1 <= len(buttons) <= 4 or not all(valid_text(label, 100) for label in buttons)):
+        raise ValueError("Invalid sample demo controls or result")
+    return path, title, value, demo
+
+
+def live_release(app, expected=None, path=None):
+    url = SITE + (DEMOS[app][0] if path is None else path)
     manifest = json.loads(fetch(url + "release.json"))
     sha = hashlib.sha256(fetch(url)).hexdigest()
     if manifest.get("app") != app or manifest.get("sha256") != sha or (expected and expected != sha):
@@ -99,7 +126,7 @@ def run(*args):
     return subprocess.run(args, check=True, capture_output=True, text=True).stdout
 
 
-def demo(app, url, sha, chromium=None):
+def demo(app, url, sha, chromium=None, sample=None):
     from playwright.sync_api import expect, sync_playwright
 
     errors = []
@@ -150,11 +177,19 @@ def demo(app, url, sha, chromium=None):
                 page.get_by_role("button", name="Download batch ZIP").click()
             if saved.value.suggested_filename != "cleaned-screenshots.zip":
                 raise ValueError("Sample export did not produce the expected archive")
-        else:
+        elif app == "signal-garden":
             for tile in (1, 7, 14):
                 page.get_by_role("button", name=f"Tile {tile}", exact=True).click()
                 page.wait_for_timeout(1100)
             expect(page.get_by_role("status")).to_have_text("Garden lit in 3 moves!")
+        else:
+            result = page.get_by_text(sample["expected"], exact=True)
+            if result.is_visible():
+                raise ValueError("Demo result was visible before the featured action")
+            for label in sample["buttons"]:
+                page.get_by_role("button", name=label, exact=True).click(timeout=4000)
+                page.wait_for_timeout(900)
+            expect(result).to_be_visible(timeout=4000)
         page.wait_for_timeout(6500)
         context.close()
         raw = video.path()
@@ -164,19 +199,26 @@ def demo(app, url, sha, chromium=None):
     return raw
 
 
-def render(app, raw):
-    _, title, value = DEMOS[app]
-    action = ("Try the sample batch\nCover details, then export" if app == "screenshot-cleaner"
-              else "Tap the numbered tiles\nLight the whole garden")
+def render(app, raw, details=None):
+    from PIL import ImageFont
+
+    _, title, value, sample = details or (*DEMOS[app], None)
+    actions = {"screenshot-cleaner": "Try the sample batch\nCover details, then export",
+               "signal-garden": "Tap the numbered tiles\nLight the whole garden"}
+    action = f"Try the sample\n{sample['action']}" if sample else actions[app]
     captions = ((0, 5, f"{title}\n{value}"), (5, 17, action),
                 (17, 25, "Try it free\nUseful Web Lab • channel profile"))
     overlays = ["fps=30", "scale=444:740", "pad=540:960:48:144:0x151924",
                 "tpad=stop_mode=clone:stop_duration=25"]
+    font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    font = ImageFont.truetype(font_path, 24)
     for i, (start, end, caption) in enumerate(captions):
+        if max(font.getlength(line) for line in caption.splitlines()) > 500:
+            raise ValueError("Promo caption does not fit the phone frame")
         label = OUT / f"caption-{i}.txt"
         label.write_text(caption)
         overlays.append(
-            "drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:"
+            f"drawtext=fontfile={font_path}:expansion=none:"
             f"textfile={label}:fontsize=24:fontcolor=white:x=(w-tw)/2:y=66:line_spacing=9:"
             f"enable='between(t,{start},{end})'"
         )
@@ -215,14 +257,16 @@ def main():
             (OUT / "report.json").write_text(json.dumps({"state": "skipped", "reasons": reasons or ["No new eligible release"]}))
             return
         app = item["project"]
-    sha, url = live_release(app, item["sha256"] if item else None)
+    details = release_demo(item) if item else (*DEMOS[app], None)
+    path, title, value, sample = details
+    sha, url = live_release(app, item["sha256"] if item else None, path)
     check_profile_destination(url)
-    render(app, demo(app, url, sha, args.chromium))
+    render(app, demo(app, url, sha, args.chromium, sample), details)
     # Reject a release that changed while the demo was recorded.
-    live_release(app, sha)
+    live_release(app, sha, path)
     details = {"state": "verified", "sample": bool(args.sample), "project": app,
                "sha256": sha, "url": url, "attempt_day": day,
-               "title": f"{DEMOS[app][1]}: {DEMOS[app][2]} #Shorts"}
+               "title": f"{title}: {value} #Shorts", "value": value, "path": path}
     (OUT / "report.json").write_text(json.dumps(details, indent=2))
 
 
