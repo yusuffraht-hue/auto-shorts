@@ -4,6 +4,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+BACKUP_MINUTE = 19
+
 def due_slot(now, config=None):
     if now.tzinfo is None:
         raise ValueError("Timezone-aware datetime required")
@@ -23,12 +25,13 @@ def due_slot(now, config=None):
 def scheduled_slot(cron, started_at):
     """Recover the intended Calgary date from the event cron and run creation time."""
     minute, hour, *rest = cron.split()
-    if rest != ["*", "*", "*"]:
-        raise ValueError("Expected a daily cron expression")
-    slot_time = started_at.astimezone(timezone.utc).replace(
+    if rest != ["*", "*", "*"] or int(minute) not in (0, BACKUP_MINUTE):
+        raise ValueError("Expected a primary or backup daily cron expression")
+    trigger = started_at.astimezone(timezone.utc).replace(
         hour=int(hour), minute=int(minute), second=0, microsecond=0)
-    if slot_time > started_at:
-        slot_time -= timedelta(days=1)
+    if trigger > started_at:
+        trigger -= timedelta(days=1)
+    slot_time = trigger.replace(minute=0)
     if started_at - slot_time >= timedelta(hours=2):
         raise ValueError("Scheduled run was too late for its posting slot")
     slot = due_slot(slot_time)

@@ -12,6 +12,17 @@ YOUTUBE = "https://www.googleapis.com/youtube/v3"
 UPLOAD_TOOL = "YOUTUBE_MULTIPART_UPLOAD_VIDEO"
 
 
+class YouTubeQuotaExceeded(RuntimeError):
+    """YouTube reported that its daily API quota is exhausted."""
+
+
+def check_quota(result, operation):
+    # Composio may return YouTube's error object or an escaped JSON message.
+    body = json.dumps(result)
+    if "quotaExceeded" in body or "dailyLimitExceeded" in body:
+        raise YouTubeQuotaExceeded(f"YouTube API quota exhausted during {operation}")
+
+
 class YouTubePublisher:
     def __init__(self, api_key, account_id, channel_id):
         if not api_key or not channel_id:
@@ -26,6 +37,8 @@ class YouTubePublisher:
             response = requests.post(API + route, json=payload,
                                      headers={"x-api-key": self.api_key}, timeout=180)
             if not response.ok:
+                if response.status_code == 403:
+                    check_quota(response.text, route)
                 raise RuntimeError(f"Composio {route} returned HTTP {response.status_code}")
             return response.json()
         except (requests.RequestException, ValueError):
@@ -44,12 +57,7 @@ class YouTubePublisher:
             payload["body"] = body
         result = self._post("/tools/execute/proxy", payload)
         if result.get("status") != 200:
-            data = result.get("data")
-            error = data.get("error") if isinstance(data, dict) else None
-            reasons = error.get("errors", []) if isinstance(error, dict) else []
-            if any(isinstance(item, dict) and item.get("reason") in {"quotaExceeded", "dailyLimitExceeded"}
-                   for item in reasons):
-                raise RuntimeError(f"YouTube API quota exhausted during {method} {resource}")
+            check_quota(result, f"{method} {resource}")
             raise RuntimeError(f"YouTube {method} {resource} returned status {result.get('status')}")
         return result["data"]
 
@@ -59,6 +67,7 @@ class YouTubePublisher:
             "arguments": arguments,
         })
         if result.get("successful") is not True:
+            check_quota(result, tool)
             raise RuntimeError(f"Composio did not confirm {tool}")
         data = result.get("data") or {}
         return data.get("data") or data
