@@ -26,7 +26,6 @@ on:
 permissions:
   actions: read
   contents: read
-  models: read
 
 concurrency:
   group: shorts-${{ github.event_name == 'schedule' && 'scheduled' || github.run_id }}
@@ -74,6 +73,15 @@ jobs:
             pip install playwright
             python -m playwright install --with-deps chromium
           fi
+      - uses: actions/cache@v5
+        if: steps.route.outputs.format != 'showcase' && steps.route.outputs.format != 'trending' && !inputs.upload
+        with:
+          path: ${{ runner.temp }}/shorts-story-model/model.gguf
+          key: shorts-story-qwen3-4b-a06e946-llama-b12776-${{ runner.os }}-${{ runner.arch }}
+      - name: Prepare the local story model
+        if: steps.route.outputs.format != 'showcase' && steps.route.outputs.format != 'trending' && !inputs.upload
+        continue-on-error: true
+        run: bash scripts/install_story_model.sh "$RUNNER_TEMP/shorts-story-model"
       - name: Render and verify media
         id: render
         env:
@@ -81,8 +89,9 @@ jobs:
           EDITORIAL_RESERVE_ONLY: ${{ inputs.upload && '1' || '0' }}
           RENDER_CHECK: ${{ inputs.upload && '1' || '0' }}
           GITHUB_TOKEN: ${{ github.token }}
+          SHORTS_MODEL_DIR: ${{ runner.temp }}/shorts-story-model
         run: |
-          python shorts_release.py render "$FORMAT"
+          bash scripts/run_with_story_model.sh python shorts_release.py render "$FORMAT"
           if [[ -s out/media-report.json && -s out/youtube-pending.json ]]; then
             echo 'eligible=true' >> "$GITHUB_OUTPUT"
           else

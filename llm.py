@@ -220,6 +220,63 @@ def _pollinations(prompt):
             time.sleep(8)
 
 
+
+def _word_range(minimum, maximum, sentence=False):
+    word = "[A-Za-z0-9'-]+[,.:;!?]?"
+    if sentence:
+        ending = "[A-Za-z0-9'-]+[.!?]"
+        pattern = f"^{word}( {word}){{{minimum - 2},{maximum - 2}}} {ending}$"
+    else:
+        pattern = f"^{word}( {word}){{{minimum - 1},{maximum - 1}}}$"
+    return {"type": "string", "pattern": pattern}
+
+
+def _local(prompt):
+    if os.environ.get("SHORTS_LOCAL_WRITER") != "1":
+        return
+    string = {"type": "string"}
+    scene_fields = {"beat": _word_range(14, 17, sentence=True), "line": _word_range(4, 8, sentence=True),
+                    "image_prompt": _word_range(8, 16)}
+    scene = {"type": "object", "properties": scene_fields,
+             "required": list(scene_fields), "additionalProperties": False}
+    fields = {"title": _word_range(3, 10), "description": _word_range(8, 20),
+              "hero": _word_range(6, 15),
+              "scenes": {"type": "array", "items": scene, "minItems": 10, "maxItems": 10}}
+    schema = {"type": "object", "properties": fields, "required": list(fields),
+              "additionalProperties": False}
+    brief = prompt.split("Write TWO versions", 1)[0]
+    instructions = (
+        "Write an original, clear Short made of ten scenes. For each scene, write a complete "
+        "14-to-17-word story beat, a 4-to-8-word narration line that tells that beat, and an "
+        "8-to-16-word illustration brief that starts with the setting. Order the scenes as "
+        "hook, goal, discovery, complication, insight, action, response, result, payoff, ending. "
+        "Give the episode a specific title. Start narration with the actual unusual event instead "
+        "of a character's name. Every line must be a complete, short sentence. "
+        "End with an action that solves the opening problem. Use concrete actions, family-friendly "
+        "language, varied sentences, and no quotes from another work. Stick to the supplied facts "
+        "for commentary and clearly label interpretations. Return only the structured response."
+    )
+    response = requests.post(
+        "http://127.0.0.1:18171/v1/chat/completions",
+        json={"messages": [{"role": "user", "content": brief.strip() + "\n\n" + instructions}],
+              "temperature": 0.67, "max_tokens": 1900,
+              "response_format": {"type": "json_schema", "json_schema": {"schema": schema}}},
+        timeout=160,
+    )
+    response.raise_for_status()
+    result = json.loads(response.json()["choices"][0]["message"]["content"])
+    beats = [scene.pop("beat") for scene in result["scenes"]]
+    lines = [scene["line"] for scene in result["scenes"]]
+    unfinished = re.compile(r"\b(a|an|and|as|becomes|for|from|in|into|is|of|or|that|the|to|with)[.!?]$", re.I)
+    if any(unfinished.search(text) for text in beats + lines):
+        raise ValueError("Draft contains an unfinished sentence")
+    if len(set(lines)) != len(lines) or "blocky town" in result["title"].lower():
+        raise ValueError("Draft has repeated narration or a generic title")
+    result["full_story"] = "\n\n".join(" ".join(beats[start:end])
+                                      for start, end in ((0, 3), (3, 7), (7, 10)))
+    yield json.dumps(result)
+
+
 def call_llm(prompt):
     sources = []
     if GEMINI:
@@ -227,7 +284,7 @@ def call_llm(prompt):
     if GROQ:
         sources.append(("groq", _groq, 2))
     if os.environ.get("LOCAL_MEDIA_ONLY") == "1":
-        sources = [("github", _github, 2)]
+        sources = [("cpu", _local, 1)]
     else:
         sources += [("github", _github, 2), ("pollinations", _pollinations, 1)]
     for name, fn, tries in sources:
