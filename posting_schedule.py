@@ -6,6 +6,10 @@ from zoneinfo import ZoneInfo
 
 BACKUP_MINUTE = 19
 
+
+class ExpiredPostingSlot(ValueError):
+    """A valid cron trigger arrived after its slot closed."""
+
 def due_slot(now, config=None):
     if now.tzinfo is None:
         raise ValueError("Timezone-aware datetime required")
@@ -33,7 +37,7 @@ def scheduled_slot(cron, started_at):
         trigger -= timedelta(days=1)
     slot_time = trigger.replace(minute=0)
     if started_at - slot_time >= timedelta(hours=2):
-        raise ValueError("Scheduled run was too late for its posting slot")
+        raise ExpiredPostingSlot("Scheduled run was too late for its posting slot")
     slot = due_slot(slot_time)
     if not slot:
         raise ValueError("Cron does not match a configured posting slot")

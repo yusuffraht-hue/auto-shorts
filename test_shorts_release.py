@@ -1,9 +1,11 @@
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from datetime import datetime, timezone
 from unittest.mock import patch
 
 from posting_schedule import recovery_slot, scheduled_slot
-from shorts_release import already_reserved, authorized_recovery, quota_active, quota_reset, scheduled_block
+from shorts_release import already_reserved, authorized_recovery, quota_active, quota_reset, route, scheduled_block
 from trend_video import select_topic
 
 
@@ -53,9 +55,33 @@ class ShortsReleaseTests(unittest.TestCase):
     def test_backup_stops_before_render_when_slot_has_reservation(self):
         with patch("shorts_release.subprocess.check_output",
                    return_value="history/production/2026-11-26-world.json\n") as git_read:
-            result = scheduled_block("2026-11-26:world", datetime(2026, 11, 26, tzinfo=timezone.utc))
+            result = scheduled_block("2026-11-26:world")
         self.assertIn("reservation", result)
         git_read.assert_called_once()
+
+    def test_scheduled_run_renders_during_a_quota_pause(self):
+        with TemporaryDirectory() as folder:
+            output = Path(folder) / "output"
+            env = {"CRON": "0 22 * * *", "RUN_CREATED_AT": "2026-11-26T22:05:00+00:00",
+                   "GITHUB_OUTPUT": str(output)}
+            with patch.dict("os.environ", env, clear=True), patch(
+                "shorts_release.subprocess.check_output", return_value=""
+            ) as git_read:
+                route()
+            self.assertIn("proceed=true", output.read_text())
+            self.assertNotIn("history/youtube-quota.json", git_read.call_args.args[0])
+
+    def test_expired_scheduled_run_skips_without_reading_the_ledger(self):
+        with TemporaryDirectory() as folder:
+            output = Path(folder) / "output"
+            env = {"CRON": "0 14 * * *", "RUN_CREATED_AT": "2026-11-26T22:39:10+00:00",
+                   "GITHUB_OUTPUT": str(output)}
+            with patch.dict("os.environ", env, clear=True), patch(
+                "shorts_release.scheduled_block"
+            ) as check_slot:
+                route()
+            self.assertEqual(output.read_text(), "proceed=false\n")
+            check_slot.assert_not_called()
 
     def test_quota_pause_ends_at_pacific_midnight_in_both_seasons(self):
         for month, reset_hour in [(7, 7), (11, 8)]:
