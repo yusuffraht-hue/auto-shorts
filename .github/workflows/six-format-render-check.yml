@@ -1,62 +1,68 @@
-name: Six-format render check
+name: Eight-format render check
 
 on:
-  push:
-    branches: [integrate/production-v3]
+  pull_request:
+    branches: [main]
     paths:
-      - .github/workflows/six-format-render-check.yml
-      - generate.py
-      - llm.py
-      - quality.py
-      - series.py
-      - editorial_topics.json
+      - ".github/workflows/six-format-*.yml"
+      - "blender/**"
+      - "editorial*.json"
+      - "generate.py"
+      - "lab_promo.py"
+      - "llm.py"
+      - "quality.py"
+      - "series.py"
+      - "shorts_release.py"
+      - "trend_video.py"
+      - "web_lab_showcase.py"
   workflow_dispatch:
 
 permissions:
   contents: read
-  models: read
 
 jobs:
   render:
-    runs-on: ubuntu-latest
-    timeout-minutes: 50
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     strategy:
       fail-fast: false
-      max-parallel: 2
+      max-parallel: 4
       matrix:
-        format: [world, kingdom, town, power, mystery, analysis]
+        format: [world, kingdom, town, power, mystery, analysis, showcase, trending]
     env:
-      DRY_RUN: "true"
-      SERIES: ${{ matrix.format == 'analysis' && 'anime' || 'town' }}
-      ORIGINAL_FORMAT: ${{ matrix.format }}
-      USE_BLENDER: ${{ matrix.format == 'analysis' && '0' || '1' }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      FORMAT: ${{ matrix.format }}
+      EDITORIAL_RESERVE_ONLY: "1"
+      RENDER_CHECK: "1"
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core blender
-      - run: pip install -r requirements.txt
-      - name: Render and check the MP4
+      - name: Install rendering tools
         run: |
-          python -u generate.py
-          python - <<'PY'
-          import json, subprocess
-          from pathlib import Path
-
-          probe = json.loads(subprocess.check_output([
-              "ffprobe", "-v", "error", "-show_streams", "-show_format",
-              "-of", "json", "out/final.mp4",
-          ]))
-          video = next(s for s in probe["streams"] if s["codec_type"] == "video")
-          assert video["height"] > video["width"], "Expected vertical video"
-          assert any(s["codec_type"] == "audio" for s in probe["streams"]), "Missing audio"
-          assert 0 < float(probe["format"]["duration"]) <= 180, "Invalid Short duration"
-          assert json.loads(Path("out/quality-report.json").read_text())["passed"]
-          Path("out/media-report.json").write_text(json.dumps(probe, indent=2))
-          PY
-          ffmpeg -v error -xerror -i out/final.mp4 -f null -
+          packages=(ffmpeg fonts-dejavu-core)
+          case "$FORMAT" in
+            analysis|showcase|trending) ;;
+            *) packages+=(blender) ;;
+          esac
+          sudo apt-get -o Acquire::Retries=1 update
+          sudo apt-get -o Acquire::Retries=1 install -y "${packages[@]}"
+          pip install -r requirements.txt Pillow
+          if [[ "$FORMAT" == showcase ]]; then
+            pip install playwright
+            python -m playwright install --with-deps chromium
+          fi
+      - name: Run the complete renderer without credentials
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python shorts_release.py render "$FORMAT"
+          if [[ "$FORMAT" == showcase && ! -s out/final.mp4 ]]; then
+            python lab_promo.py --sample screenshot-cleaner
+            cp out/lab-promo/final.mp4 out/final.mp4
+            python -c 'from pathlib import Path; from shorts_release import verify_media; verify_media(Path("out/final.mp4"))'
+          fi
+          test -s out/final.mp4 && test -s out/media-report.json
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -64,7 +70,8 @@ jobs:
           path: |
             out/final.mp4
             out/story.txt
+            out/lab-promo/report.json
             out/quality-report.json
             out/media-report.json
-          retention-days: 7
+          retention-days: 2
           if-no-files-found: ignore

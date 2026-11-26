@@ -125,6 +125,7 @@ def publish(kind, slot):
         or os.environ.get("GITHUB_EVENT_NAME") != "schedule"
         or os.environ.get("GITHUB_REF") != "refs/heads/main"
         or os.environ.get("SHORTS_PUBLIC_VERIFIED") != "true"
+        or os.environ.get("COMPOSIO_ZERO_COST_CONFIRMED") != "true"
     ):
         raise RuntimeError("Public mode requires a verified scheduled main-branch run")
     manifest_path = OUT / "youtube-pending.json"

@@ -133,6 +133,7 @@ jobs:
           SLOT: ${{ needs.render.outputs.slot }}
           PUBLISH_MODE: ${{ github.event_name == 'schedule' && 'public' || 'canary' }}
           SHORTS_PUBLIC_VERIFIED: ${{ vars.SHORTS_PUBLIC_VERIFIED }}
+          COMPOSIO_ZERO_COST_CONFIRMED: ${{ vars.COMPOSIO_ZERO_COST_CONFIRMED }}
           LAB_PROMO_PROFILE_LINK_VERIFIED: ${{ vars.LAB_PROMO_PROFILE_LINK_VERIFIED }}
           COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
           COMPOSIO_YOUTUBE_ACCOUNT_ID: ${{ vars.COMPOSIO_YOUTUBE_ACCOUNT_ID }}

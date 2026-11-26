@@ -9,6 +9,7 @@ import subprocess
 from datetime import datetime, timedelta, timezone
 from html.parser import HTMLParser
 from pathlib import Path
+from zipfile import ZipFile
 from urllib.error import HTTPError
 from urllib.parse import urljoin
 from urllib.request import Request, urlopen
@@ -253,6 +254,13 @@ def demo(app, url, sha, chromium=None, sample=None):
                 page.get_by_role("button", name="Download batch ZIP").click()
             if saved.value.suggested_filename != "cleaned-screenshots.zip":
                 raise ValueError("Sample export did not produce the expected archive")
+            with ZipFile(saved.value.path()) as batch:
+                exports = batch.namelist()
+                if len(exports) != 3 or len(set(exports)) != 3 or any(
+                    not name.endswith(".png") or not batch.read(name).startswith(b"\x89PNG\r\n\x1a\n")
+                    for name in exports
+                ):
+                    raise ValueError("The sample archive did not contain three PNG exports")
         elif app == "signal-garden":
             for tile in (1, 7, 14):
                 page.get_by_role("button", name=f"Tile {tile}", exact=True).click()
@@ -318,7 +326,7 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--sample", choices=DEMOS)
-    parser.add_argument("--chromium")
+    parser.add_argument("--chromium", default=os.environ.get("SHORTS_CHROMIUM"))
     args = parser.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     for output_name in ("report.json", "final.mp4"):
@@ -351,6 +359,7 @@ def main():
                 render(app, raw, details)
                 live_release(app, item["sha256"], path)
             except (OSError, ValueError, BrowserError, subprocess.CalledProcessError) as error:
+                (OUT / "final.mp4").unlink(missing_ok=True)
                 skipped.append(f"{app}: {error}")
                 feed = {**feed, "releases": [entry for entry in feed["releases"] if entry is not item]}
                 continue
