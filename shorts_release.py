@@ -72,7 +72,8 @@ def render(kind):
            "YOUTUBE_QUEUE_ONLY": "true"}
     module = {"trending": "trend_video.py", "showcase": "lab_promo.py"}.get(kind, "generate.py")
     if module == "generate.py":
-        env.update(SERIES="anime" if kind == "analysis" else "town", ORIGINAL_FORMAT=kind, USE_BLENDER="1")
+        env.update(SERIES="anime" if kind == "analysis" else "town", ORIGINAL_FORMAT=kind,
+                   USE_BLENDER="1", EDITORIAL_RESERVE_ONLY="1")
     subprocess.run([sys.executable, "-u", module], check=True, env=env, timeout=3000)
     if kind == "showcase":
         from lab_promo import OUT as lab_out

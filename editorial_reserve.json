@@ -1,285 +1,580 @@
 {
-  "world": {
-    "title": "The Rain That Climbed Upstairs",
-    "description": "A town roof pours rain upward, until its caretaker learns why.",
-    "full_story": "Rain never fell beside the tallest roof in town. On sunny mornings it rose in thin silver ribbons. Mina noticed the gutter was dry even while her umbrella pulled upward like a kite. She poured a little water from her cup. The first drop climbed the sunlit copper, stopped at a shadow, then continued when she shifted her umbrella. The town had built a water ladder without realizing it.\n\nCopper strips ran from the blue roofed school to a greenhouse above the garden. One strip had cracked, leaving a dark gap. Mina borrowed a spoon from her lunchbox and rested it across the break. The rain climbed over the spoon and spilled into the greenhouse trays.\n\nBy afternoon the seedlings had brightened. Mina marked the bridge with ribbon so the caretaker could replace it. The next day every gardener watched the weather for the same strange forecast: sunshine with a chance of upstairs rain.",
-    "scenes": [
-      {
-        "line": "Rain climbed our town's tallest roof.",
-        "image_prompt": "street rain bends upward beside the tallest brick rooftop at sunrise"
-      },
-      {
-        "line": "Mina found its gutter completely dry.",
-        "image_prompt": "street Mina holds a dry gutter beneath rising silver droplets"
-      },
-      {
-        "line": "Her blue umbrella tugged toward daylight.",
-        "image_prompt": "street a blue umbrella tugs above Mina toward bright daylight"
-      },
-      {
-        "line": "She tipped one cup toward it.",
-        "image_prompt": "street Mina tips a porcelain cup toward the copper gutter"
-      },
-      {
-        "line": "Water climbed wherever sunlight touched metal.",
-        "image_prompt": "street sunlight strikes copper metal as water climbs narrow channels"
-      },
-      {
-        "line": "The school roof carried copper strips.",
-        "image_prompt": "classroom copper strips climb the blue school roof beside windows"
-      },
-      {
-        "line": "One strip broke above the garden.",
-        "image_prompt": "park a broken copper strip hangs above the garden greenhouse"
-      },
-      {
-        "line": "Mina bridged it with her spoon.",
-        "image_prompt": "park Mina lays a shiny spoon across the copper gap"
-      },
-      {
-        "line": "Rain reached the greenhouse's thirsty seedlings.",
-        "image_prompt": "park seedlings unfurl beneath droplets inside the sunlit greenhouse"
-      },
-      {
-        "line": "Now rooftops water gardens above them.",
-        "image_prompt": "park greenhouse and brick rooftops connect through bright copper channels"
-      }
-    ]
-  },
-  "kingdom": {
-    "title": "The Kingdom That Paid With Shade",
-    "description": "A small kingdom finds something better than gold to trade.",
-    "full_story": "The little kingdom sat between two long roads. Its square had stone arches and almost no shade at noon. Travelers arrived tired and thirsty, then hurried through because there was nowhere cool to wait. The tent maker asked the mayor to try a trade: give every wagon a shady place to stop, and see what people could spare in return.\n\nThe mayor had no canvas. A wagoner offered an old sailcloth, saying a cool place to drink would be worth more than the cloth in his cart. Together they stretched it between two arches. More wagoners stopped, and soon someone supplied a rope and someone else brought another sail.\n\nThe covered lane filled with stalls. Merchants still paid for their goods with coins, but the shelter was shared freely. The kingdom's best trade was a public space that made people want to stay, and its wealth was measured partly in cooler afternoons.",
-    "scenes": [
-      {
-        "line": "The kingdom paid merchants with shade.",
-        "image_prompt": "market painted stone arches cast long shadows across a dry trading square"
-      },
-      {
-        "line": "Travelers stopped under its painted arches.",
-        "image_prompt": "market dusty travelers rest beneath painted arches beside wooden wagons"
-      },
-      {
-        "line": "Their wagons carried little drinking water.",
-        "image_prompt": "market a wagoner shakes an almost empty blue water flask"
-      },
-      {
-        "line": "A tent maker made the offer.",
-        "image_prompt": "market a tent maker sketches fabric shelters on rough paper"
-      },
-      {
-        "line": "We need canvas, said the mayor.",
-        "image_prompt": "market the mayor gestures toward bare arches in sharp sunshine"
-      },
-      {
-        "line": "A wagoner offered spare sailcloth instead.",
-        "image_prompt": "market a wagoner unrolls beige sailcloth from a wooden wagon"
-      },
-      {
-        "line": "They stretched cloth between stone arches.",
-        "image_prompt": "market workers stretch broad fabric between painted stone arches"
-      },
-      {
-        "line": "The cool lane became a market.",
-        "image_prompt": "market colorful fruit stalls open below a cool canvas lane"
-      },
-      {
-        "line": "Travelers left more cloth each week.",
-        "image_prompt": "market arriving wagoners donate folded sailcloth beside the shaded stalls"
-      },
-      {
-        "line": "Shade was something everyone could share.",
-        "image_prompt": "market families gather beneath linked canopies as afternoon sunlight glows"
-      }
-    ]
-  },
-  "town": {
-    "title": "Why the Library Returned Lunch",
-    "description": "Nora tracks a runaway return slot to a surprisingly simple cause.",
-    "full_story": "Nora brought a yellow lunchbox to the library every Saturday. One morning the metal return slot pushed it back at her twice. She was certain she had left it on a bench, so she stayed to watch from the shelves. The slot hummed just before noon, and a little delivery cart appeared beneath it. Bright arrows told the cart what route to follow.\n\nA loose strip of tape had turned one arrow toward the lunchbox shelf. The cart had been collecting lunches instead of books, then asking the return slot to send them back. Nora pressed the arrow down in its proper place. The cart rolled to the book shelf, loaded its first stack, and took it upstairs.\n\nNora opened her lunchbox to celebrate. Her missing library card was under the sandwich. She had blamed the cart for that too, but the card had probably been with her all along.",
-    "scenes": [
-      {
-        "line": "The library returned Nora's lunch twice.",
-        "image_prompt": "library a yellow lunchbox slides from a silver return slot"
-      },
-      {
-        "line": "Nora hid behind the reading bench.",
-        "image_prompt": "library Nora crouches behind a wooden reading bench with notebooks"
-      },
-      {
-        "line": "The return slot hummed before noon.",
-        "image_prompt": "library the silver return slot vibrates beside a clock near noon"
-      },
-      {
-        "line": "A tiny cart followed painted arrows.",
-        "image_prompt": "library a small rolling cart follows bright arrows across tiles"
-      },
-      {
-        "line": "Its wheels slipped on loose tape.",
-        "image_prompt": "library a tiny wheel catches loose tape near a floor seam"
-      },
-      {
-        "line": "Nora traced the arrow to lunchboxes.",
-        "image_prompt": "library Nora traces a crooked arrow toward stacked yellow lunchboxes"
-      },
-      {
-        "line": "She moved it beneath the returns.",
-        "image_prompt": "library Nora presses a painted arrow beneath the returns shelf"
-      },
-      {
-        "line": "The cart carried every book upstairs.",
-        "image_prompt": "library books ride a small cart toward the wooden stairs"
-      },
-      {
-        "line": "Nora finally opened her sandwich box.",
-        "image_prompt": "library Nora opens a yellow sandwich box beside returned books"
-      },
-      {
-        "line": "Inside waited yesterday's missing library card.",
-        "image_prompt": "library a missing library card rests inside the yellow lunchbox"
-      }
-    ]
-  },
-  "power": {
-    "title": "The Power That Holds One Sound",
-    "description": "A quiet inventor puts one stored sound to good use.",
-    "full_story": "Ivo could trap a sound in a glass jar. When he shook it, the sound returned once, just as loud as the moment he caught it. He started with a raindrop that sounded like thunder on a hollow metal roof. His power had one awkward rule: catching a second sound erased the first. His shelf of empty jars was mostly decoration.\n\nOne foggy morning the bridge bell rang once before its rope snapped. Ivo caught the last clear ring, giving up the raindrop. He took the jar to the bridge entrance and shook it once when a group of cyclists approached. They slowed early, saw the narrow crossing, and walked their bikes the rest of the way.\n\nThe caretaker repaired the bell and showed Ivo where to stand on foggy days. The jar never became louder or more powerful. Ivo simply found one moment when the right sound made a difference.",
-    "scenes": [
-      {
-        "line": "Ivo could hold one sound still.",
-        "image_prompt": "house Ivo holds a glowing glass jar near an open window"
-      },
-      {
-        "line": "His jar caught a single raindrop.",
-        "image_prompt": "house one raindrop strikes glass beside Ivo's careful wooden workbench"
-      },
-      {
-        "line": "He shook it and heard thunder.",
-        "image_prompt": "house Ivo shakes a glass jar as a bright soundwave appears"
-      },
-      {
-        "line": "The jar held only one recording.",
-        "image_prompt": "house one glowing soundwave sits inside the small glass jar"
-      },
-      {
-        "line": "A bridge bell stopped during fog.",
-        "image_prompt": "street a brass bridge bell hangs still in thick pale fog"
-      },
-      {
-        "line": "Ivo caught its last clear ring.",
-        "image_prompt": "street Ivo catches a bright bell ripple in his glass jar"
-      },
-      {
-        "line": "He chose the bell over rain.",
-        "image_prompt": "street Ivo studies rain outside and the glowing stored bell sound"
-      },
-      {
-        "line": "His jar rang beside the bridge.",
-        "image_prompt": "street Ivo holds the ringing jar by the bridge entrance"
-      },
-      {
-        "line": "Cyclists slowed before the narrow crossing.",
-        "image_prompt": "street cyclists slow beside foggy railings before a narrow wooden crossing"
-      },
-      {
-        "line": "Ivo saved a sound worth hearing.",
-        "image_prompt": "street sunrise shows Ivo and the glass jar beside quiet railings"
-      }
-    ]
-  },
-  "mystery": {
-    "title": "The Library's Impossible Footprints",
-    "description": "A wet footprint puzzle has a clue hidden in plain sight.",
-    "full_story": "Lena found wet prints that seemed to end at a wall of library shelves. That made no sense: a person could not walk through wood. But the open window, a dry blue tile, and an umbrella sticking out from behind the books were all still visible. She asked the librarian to leave the aisle alone while she looked at the pattern.\n\nThe marks came in pairs, all the same distance apart. They were rounder than shoe prints. The tall shelf at the end was a wheeled book rack and the floor dipped gently toward the wall. A gust through the window had pushed it downhill. A wet umbrella hanging on its side dripped where the wheels paused against bumps in the tiles.\n\nLena rolled the rack back and saw the two wheels line up with the marks. The dry tile had a shallow dip the wheels had crossed without touching. The footprints belonged to furniture, and the umbrella had done the rest.",
-    "scenes": [
-      {
-        "line": "Wet footprints ended at solid shelves.",
-        "image_prompt": "library wet footprints end abruptly in front of tall bookshelves"
-      },
-      {
-        "line": "Lena spotted one dry blue tile.",
-        "image_prompt": "library Lena kneels beside one dry blue tile on wet flooring"
-      },
-      {
-        "line": "The window beside it stood open.",
-        "image_prompt": "library an open window lets wind into a row of shelves"
-      },
-      {
-        "line": "Wind moved a wheeled book rack.",
-        "image_prompt": "library a wheeled book rack shifts beside the open window"
-      },
-      {
-        "line": "The rack hid two muddy wheels.",
-        "image_prompt": "library two muddy wheels hide beneath a rolling wooden book rack"
-      },
-      {
-        "line": "A wet umbrella hung behind books.",
-        "image_prompt": "library a dripping umbrella hangs behind a shelf full of books"
-      },
-      {
-        "line": "Lena rolled the rack back slowly.",
-        "image_prompt": "library Lena gently rolls a book rack backward along wet tiles"
-      },
-      {
-        "line": "Two wheels crossed the dry tile.",
-        "image_prompt": "library two small rack wheels cross a bright dry blue tile"
-      },
-      {
-        "line": "The umbrella dripped beside each wheel.",
-        "image_prompt": "library a wet umbrella drips water alongside a muddy rack wheel"
-      },
-      {
-        "line": "Nobody walked here after the rain.",
-        "image_prompt": "library Lena points at the rack and the empty library aisle"
-      }
-    ]
-  },
-  "analysis": {
-    "title": "Why Knowledge Becomes the Treasure",
-    "description": "A look at what makes the rebuilding premise of Dr. STONE work.",
-    "full_story": "In Dr. STONE, humanity turns to stone. Taiju awakens thousands of years later and reunites with Senku, who wants to restore civilization through science. That is the setup. What interests me is how it makes the ability to explain a useful idea feel as valuable as finding a tool.\n\nA rebuilding story gives basic knowledge a job. Instead of hearing that a character is clever, we can ask whether someone else could understand the reasoning and put it to use. In my reading, that makes a scientific explanation part of the adventure. It gives the audience a way to follow progress even if the details are unfamiliar.\n\nIt also changes what counts as a treasure. An object can help whoever holds it. An idea can help a whole group once it can be explained and shared. That difference is what gives this premise its energy for me.",
-    "topic_id": "stone-science",
-    "scenes": [
-      {
-        "line": "Why is knowledge the real treasure?",
-        "image_prompt": "original diagram an illuminated book stands beside a simple stone circle"
-      },
-      {
-        "line": "Humanity has turned to stone here.",
-        "image_prompt": "original illustration still unrecognizable stone silhouettes stand under morning sky"
-      },
-      {
-        "line": "Taiju wakes after thousands of years.",
-        "image_prompt": "original symbolic clock shows centuries passing above layered stone bands"
-      },
-      {
-        "line": "He reunites with the scientist Senku.",
-        "image_prompt": "original diagram two anonymous figures face each other beside stones"
-      },
-      {
-        "line": "Senku wants civilization restored through science.",
-        "image_prompt": "original illustration an anonymous silhouette studies careful drawings of simple tools"
-      },
-      {
-        "line": "That goal makes knowledge feel practical.",
-        "image_prompt": "original diagram a notebook connects to basic tools with bright arrows"
-      },
-      {
-        "line": "A useful idea can help others.",
-        "image_prompt": "original illustration an open notebook moves between two anonymous silhouettes"
-      },
-      {
-        "line": "Explanations become part of the adventure.",
-        "image_prompt": "original diagram a trail of explanatory sketches winds across a landscape"
-      },
-      {
-        "line": "Understanding is how progress gets shared.",
-        "image_prompt": "original illustration several anonymous silhouettes share a lit drawing table"
-      },
-      {
-        "line": "That is why science drives it.",
-        "image_prompt": "original diagram bright threads connect an open book to a settlement"
-      }
-    ]
-  }
+  "world": [
+    {
+      "title": "The Rain That Climbed Upstairs",
+      "description": "A town roof pours rain upward, until its caretaker learns why.",
+      "full_story": "Rain never fell beside the tallest roof in town. On sunny mornings it rose in thin silver ribbons. Mina noticed the gutter was dry even while her umbrella pulled upward like a kite. She poured a little water from her cup. The first drop climbed the sunlit copper, stopped at a shadow, then continued when she shifted her umbrella. The town had built a water ladder without realizing it.\n\nCopper strips ran from the blue roofed school to a greenhouse above the garden. One strip had cracked, leaving a dark gap. Mina borrowed a spoon from her lunchbox and rested it across the break. The rain climbed over the spoon and spilled into the greenhouse trays.\n\nBy afternoon the seedlings had brightened. Mina marked the bridge with ribbon so the caretaker could replace it. The next day every gardener watched the weather for the same strange forecast: sunshine with a chance of upstairs rain.",
+      "scenes": [
+        {
+          "line": "Rain climbed our town's tallest roof.",
+          "image_prompt": "street rain bends upward beside the tallest brick rooftop at sunrise"
+        },
+        {
+          "line": "Mina found its gutter completely dry.",
+          "image_prompt": "street Mina holds a dry gutter beneath rising silver droplets"
+        },
+        {
+          "line": "Her blue umbrella tugged toward daylight.",
+          "image_prompt": "street a blue umbrella tugs above Mina toward bright daylight"
+        },
+        {
+          "line": "She tipped one cup toward it.",
+          "image_prompt": "street Mina tips a porcelain cup toward the copper gutter"
+        },
+        {
+          "line": "Water climbed wherever sunlight touched metal.",
+          "image_prompt": "street sunlight strikes copper metal as water climbs narrow channels"
+        },
+        {
+          "line": "The school roof carried copper strips.",
+          "image_prompt": "classroom copper strips climb the blue school roof beside windows"
+        },
+        {
+          "line": "One strip broke above the garden.",
+          "image_prompt": "park a broken copper strip hangs above the garden greenhouse"
+        },
+        {
+          "line": "Mina bridged it with her spoon.",
+          "image_prompt": "park Mina lays a shiny spoon across the copper gap"
+        },
+        {
+          "line": "Rain reached the greenhouse's thirsty seedlings.",
+          "image_prompt": "park seedlings unfurl beneath droplets inside the sunlit greenhouse"
+        },
+        {
+          "line": "Now rooftops water gardens above them.",
+          "image_prompt": "park greenhouse and brick rooftops connect through bright copper channels"
+        }
+      ]
+    },
+    {
+      "title": "The Street That Floated at Noon",
+      "description": "A moving market makes one shopkeeper rethink where to set up.",
+      "full_story": "Every noon, pavement in Nora's town grew light enough to float. On quiet streets this hardly mattered. But the market had spilled onto a sunny strip by the clock tower, with apples stacked on carts that depended on solid roads. Nora noticed before the others because a chalk line rose past her ankles.\n\nA loose stone dropped when it drifted under her awning. Nora followed the tower's shadow with her eyes and asked the other sellers to line up their awnings. The connected shade made a path back to the market square. Almost every cart stayed down.\n\nAt the last gap, one wheel tilted upward. A neighbor passed Nora a spare sheet, and together they closed the opening. The market moved to the shady side of the tower permanently. The old chalk stripe became a sign for the next stretch of pavement the town planned to cover.",
+      "scenes": [
+        {
+          "line": "At noon, the street lost weight.",
+          "image_prompt": "street loose paving stones rise past the midday market awning"
+        },
+        {
+          "line": "Nora saw the chalk line drift.",
+          "image_prompt": "street Nora watches a chalk stripe rise from the sidewalk"
+        },
+        {
+          "line": "A market cart lifted next.",
+          "image_prompt": "market a wooden cart rises near the fruit stall window"
+        },
+        {
+          "line": "Shade brought the first stone back.",
+          "image_prompt": "market one pavement stone lands below a wide canvas shade"
+        },
+        {
+          "line": "The clock tower cast a shadow.",
+          "image_prompt": "street a clock tower shadow stretches across the floating pavement"
+        },
+        {
+          "line": "Nora moved the awnings together.",
+          "image_prompt": "market Nora pulls two green awnings tight above the street"
+        },
+        {
+          "line": "A shaded path held the carts.",
+          "image_prompt": "market connected awnings shade the pavement under two market carts"
+        },
+        {
+          "line": "One gap sent a wheel upward.",
+          "image_prompt": "street a cart wheel lifts into a bright gap between awnings"
+        },
+        {
+          "line": "Neighbors bridged it with a sheet.",
+          "image_prompt": "market two neighbors stretch a pale sheet between canvas awnings"
+        },
+        {
+          "line": "Now shoppers follow the shade.",
+          "image_prompt": "market shaded pavement carries shoppers beneath a long patchwork canopy"
+        }
+      ]
+    }
+  ],
+  "kingdom": [
+    {
+      "title": "The Kingdom That Paid With Shade",
+      "description": "A small kingdom finds something better than gold to trade.",
+      "full_story": "The little kingdom sat between two long roads. Its square had stone arches and almost no shade at noon. Travelers arrived tired and thirsty, then hurried through because there was nowhere cool to wait. The tent maker asked the mayor to try a trade: give every wagon a shady place to stop, and see what people could spare in return.\n\nThe mayor had no canvas. A wagoner offered an old sailcloth, saying a cool place to drink would be worth more than the cloth in his cart. Together they stretched it between two arches. More wagoners stopped, and soon someone supplied a rope and someone else brought another sail.\n\nThe covered lane filled with stalls. Merchants still paid for their goods with coins, but the shelter was shared freely. The kingdom's best trade was a public space that made people want to stay, and its wealth was measured partly in cooler afternoons.",
+      "scenes": [
+        {
+          "line": "The kingdom paid merchants with shade.",
+          "image_prompt": "market painted stone arches cast long shadows across a dry trading square"
+        },
+        {
+          "line": "Travelers stopped under its painted arches.",
+          "image_prompt": "market dusty travelers rest beneath painted arches beside wooden wagons"
+        },
+        {
+          "line": "Their wagons carried little drinking water.",
+          "image_prompt": "market a wagoner shakes an almost empty blue water flask"
+        },
+        {
+          "line": "A tent maker made the offer.",
+          "image_prompt": "market a tent maker sketches fabric shelters on rough paper"
+        },
+        {
+          "line": "We need canvas, said the mayor.",
+          "image_prompt": "market the mayor gestures toward bare arches in sharp sunshine"
+        },
+        {
+          "line": "A wagoner offered spare sailcloth instead.",
+          "image_prompt": "market a wagoner unrolls beige sailcloth from a wooden wagon"
+        },
+        {
+          "line": "They stretched cloth between stone arches.",
+          "image_prompt": "market workers stretch broad fabric between painted stone arches"
+        },
+        {
+          "line": "The cool lane became a market.",
+          "image_prompt": "market colorful fruit stalls open below a cool canvas lane"
+        },
+        {
+          "line": "Travelers left more cloth each week.",
+          "image_prompt": "market arriving wagoners donate folded sailcloth beside the shaded stalls"
+        },
+        {
+          "line": "Shade was something everyone could share.",
+          "image_prompt": "market families gather beneath linked canopies as afternoon sunlight glows"
+        }
+      ]
+    },
+    {
+      "title": "The Kingdom That Traded One Bridge",
+      "description": "A failed river crossing gives competing markets a reason to cooperate.",
+      "full_story": "Mara tallied the wagons after spring water broke the footbridge. Her market sent full baskets around the river on Monday. The other bank sent full baskets the opposite way on Thursday. On both days the returning wagons carried nothing, even though the detour took half a morning.\n\nShe spoke to the stallholders about sharing one market day. That would mean taking fresh bread and baskets in opposite directions on the same morning. The returning carts could finally carry supplies. At first some sellers worried they would lose their favorite places, so they tried a single shared market as an experiment.\n\nThe wagons used their return trips to carry planks for the broken bridge. Bakers brought bread for workers, and the bridge crews repaired the crossing before summer. The trial made both markets busier. The banks kept the shared day, with the river crossing at its center.",
+      "scenes": [
+        {
+          "line": "One bridge held two markets together.",
+          "image_prompt": "market an old wooden bridge overlooks stalls on both riverbanks"
+        },
+        {
+          "line": "Spring water split the crossing.",
+          "image_prompt": "street a rising river separates two ends of a wooden footbridge"
+        },
+        {
+          "line": "Both banks kept different market days.",
+          "image_prompt": "market two noticeboards list trading days on opposite riverbanks"
+        },
+        {
+          "line": "Mara counted empty return trips.",
+          "image_prompt": "market Mara marks empty trips on paper beside a folded awning"
+        },
+        {
+          "line": "Empty baskets crossed the long road.",
+          "image_prompt": "street a wagon carries empty woven baskets around the river bend"
+        },
+        {
+          "line": "She proposed one shared market day.",
+          "image_prompt": "market Mara presents a marked calendar to two stallholders"
+        },
+        {
+          "line": "The return carts carried river planks.",
+          "image_prompt": "street a returning wagon carries bridge planks beside the river"
+        },
+        {
+          "line": "Bakers brought lunch for bridge crews.",
+          "image_prompt": "market bakers hand baskets of warm bread to wooden bridge workers"
+        },
+        {
+          "line": "The two banks rebuilt together.",
+          "image_prompt": "street workers place the last wooden board between the riverbanks"
+        },
+        {
+          "line": "Monday became both banks' market day.",
+          "image_prompt": "market one shared market fills stalls beside the restored bridge"
+        }
+      ]
+    }
+  ],
+  "town": [
+    {
+      "title": "Why the Library Returned Lunch",
+      "description": "Nora tracks a runaway return slot to a surprisingly simple cause.",
+      "full_story": "Nora brought a yellow lunchbox to the library every Saturday. One morning the metal return slot pushed it back at her twice. She was certain she had left it on a bench, so she stayed to watch from the shelves. The slot hummed just before noon, and a little delivery cart appeared beneath it. Bright arrows told the cart what route to follow.\n\nA loose strip of tape had turned one arrow toward the lunchbox shelf. The cart had been collecting lunches instead of books, then asking the return slot to send them back. Nora pressed the arrow down in its proper place. The cart rolled to the book shelf, loaded its first stack, and took it upstairs.\n\nNora opened her lunchbox to celebrate. Her missing library card was under the sandwich. She had blamed the cart for that too, but the card had probably been with her all along.",
+      "scenes": [
+        {
+          "line": "The library returned Nora's lunch twice.",
+          "image_prompt": "library a yellow lunchbox slides from a silver return slot"
+        },
+        {
+          "line": "Nora hid behind the reading bench.",
+          "image_prompt": "library Nora crouches behind a wooden reading bench with notebooks"
+        },
+        {
+          "line": "The return slot hummed before noon.",
+          "image_prompt": "library the silver return slot vibrates beside a clock near noon"
+        },
+        {
+          "line": "A tiny cart followed painted arrows.",
+          "image_prompt": "library a small rolling cart follows bright arrows across tiles"
+        },
+        {
+          "line": "Its wheels slipped on loose tape.",
+          "image_prompt": "library a tiny wheel catches loose tape near a floor seam"
+        },
+        {
+          "line": "Nora traced the arrow to lunchboxes.",
+          "image_prompt": "library Nora traces a crooked arrow toward stacked yellow lunchboxes"
+        },
+        {
+          "line": "She moved it beneath the returns.",
+          "image_prompt": "library Nora presses a painted arrow beneath the returns shelf"
+        },
+        {
+          "line": "The cart carried every book upstairs.",
+          "image_prompt": "library books ride a small cart toward the wooden stairs"
+        },
+        {
+          "line": "Nora finally opened her sandwich box.",
+          "image_prompt": "library Nora opens a yellow sandwich box beside returned books"
+        },
+        {
+          "line": "Inside waited yesterday's missing library card.",
+          "image_prompt": "library a missing library card rests inside the yellow lunchbox"
+        }
+      ]
+    },
+    {
+      "title": "Someone Kept Moving the Bench",
+      "description": "A bench changes places at the same time each afternoon.",
+      "full_story": "Tess had crossed the park every afternoon since school began. So she noticed when the bench edged toward the grass before sunset. She put chalk marks against its feet and checked again at dinner. One mark had vanished under a leg, but the dusty path was empty of shoe prints.\n\nThe next day she watched from the library steps. A gardener arrived just before sunset with a ruler and knelt beside the bench. He checked a crack in the pavement and gently nudged the bench aside. A tiny sapling had pushed up through the crack, right where the seat shaded its leaves.\n\nHe had been giving the sapling a little sunlight during each visit, unsure where the bench could go. Tess pointed out a flat patch of gravel nearby. They moved the seat there together. By the next afternoon it was still in its new place, and the sapling had a little clearing of its own.",
+      "scenes": [
+        {
+          "line": "Our bench moved before every sunset.",
+          "image_prompt": "park a pale park bench casts an evening shadow beside the path"
+        },
+        {
+          "line": "Tess marked its legs with chalk.",
+          "image_prompt": "park Tess draws small chalk marks beside the bench legs"
+        },
+        {
+          "line": "No footprints crossed the dry path.",
+          "image_prompt": "park the dry park path shows chalk marks without any footprints"
+        },
+        {
+          "line": "A chalk mark ended near grass.",
+          "image_prompt": "park a fresh chalk mark touches one corner of the grass"
+        },
+        {
+          "line": "She watched from the library steps.",
+          "image_prompt": "library Tess waits on stone steps overlooking the park bench"
+        },
+        {
+          "line": "The gardener arrived with a ruler.",
+          "image_prompt": "park a gardener approaches the bench holding a wooden ruler"
+        },
+        {
+          "line": "He checked one crack for growth.",
+          "image_prompt": "park the gardener measures a thin crack beside the bench leg"
+        },
+        {
+          "line": "A sapling grew beneath the pavement.",
+          "image_prompt": "park a green sapling emerges through a thin sidewalk crack"
+        },
+        {
+          "line": "They moved the bench onto gravel.",
+          "image_prompt": "park Tess and the gardener slide the bench onto smooth gravel"
+        },
+        {
+          "line": "The tree got its own clearing.",
+          "image_prompt": "park a green sapling grows beside an open gravel seating area"
+        }
+      ]
+    }
+  ],
+  "power": [
+    {
+      "title": "The Power That Holds One Sound",
+      "description": "A quiet inventor puts one stored sound to good use.",
+      "full_story": "Ivo could trap a sound in a glass jar. When he shook it, the sound returned once, just as loud as the moment he caught it. He started with a raindrop that sounded like thunder on a hollow metal roof. His power had one awkward rule: catching a second sound erased the first. His shelf of empty jars was mostly decoration.\n\nOne foggy morning the bridge bell rang once before its rope snapped. Ivo caught the last clear ring, giving up the raindrop. He took the jar to the bridge entrance and shook it once when a group of cyclists approached. They slowed early, saw the narrow crossing, and walked their bikes the rest of the way.\n\nThe caretaker repaired the bell and showed Ivo where to stand on foggy days. The jar never became louder or more powerful. Ivo simply found one moment when the right sound made a difference.",
+      "scenes": [
+        {
+          "line": "Ivo could hold one sound still.",
+          "image_prompt": "house Ivo holds a glowing glass jar near an open window"
+        },
+        {
+          "line": "His jar caught a single raindrop.",
+          "image_prompt": "house one raindrop strikes glass beside Ivo's careful wooden workbench"
+        },
+        {
+          "line": "He shook it and heard thunder.",
+          "image_prompt": "house Ivo shakes a glass jar as a bright soundwave appears"
+        },
+        {
+          "line": "The jar held only one recording.",
+          "image_prompt": "house one glowing soundwave sits inside the small glass jar"
+        },
+        {
+          "line": "A bridge bell stopped during fog.",
+          "image_prompt": "street a brass bridge bell hangs still in thick pale fog"
+        },
+        {
+          "line": "Ivo caught its last clear ring.",
+          "image_prompt": "street Ivo catches a bright bell ripple in his glass jar"
+        },
+        {
+          "line": "He chose the bell over rain.",
+          "image_prompt": "street Ivo studies rain outside and the glowing stored bell sound"
+        },
+        {
+          "line": "His jar rang beside the bridge.",
+          "image_prompt": "street Ivo holds the ringing jar by the bridge entrance"
+        },
+        {
+          "line": "Cyclists slowed before the narrow crossing.",
+          "image_prompt": "street cyclists slow beside foggy railings before a narrow wooden crossing"
+        },
+        {
+          "line": "Ivo saved a sound worth hearing.",
+          "image_prompt": "street sunrise shows Ivo and the glass jar beside quiet railings"
+        }
+      ]
+    },
+    {
+      "title": "The Power That Borrowed a Shadow",
+      "description": "An unusual trick keeps a school courtyard cool for one minute.",
+      "full_story": "I learned to borrow shadows by accident. When I touched the shadow of a street sign, a little square of shade slid beside me. The pavement underneath the sign went bright. After a minute, the square snapped back to its old place. The sign itself had never moved.\n\nDuring a hot afternoon at school, one tray of seedlings was wilting in the courtyard. I could move shade, but I could not keep it for longer than a minute. I borrowed the water tower's broad shadow while my neighbor carried the tray to the greenhouse.\n\nIt took us less than a minute. The tower's shadow had returned by the time the greenhouse door clicked shut. The borrowed shade worked for the crossing, and we made a permanent place for the trays inside the greenhouse. The next day we carried the other trays through before the sun reached the courtyard.",
+      "scenes": [
+        {
+          "line": "I can borrow a shadow.",
+          "image_prompt": "street a girl in a yellow jacket studies a sharp pavement shadow"
+        },
+        {
+          "line": "Only while the clock hand moves.",
+          "image_prompt": "street an old clock shows a single minute passing in sunlight"
+        },
+        {
+          "line": "A borrowed shadow leaves light behind.",
+          "image_prompt": "street a bright patch appears beneath a dark painted park sign"
+        },
+        {
+          "line": "The school courtyard had no shade.",
+          "image_prompt": "classroom a bare courtyard shines through a blue classroom window"
+        },
+        {
+          "line": "A seed tray started to wilt.",
+          "image_prompt": "park a tray of seedlings droops in the direct noon sunshine"
+        },
+        {
+          "line": "I borrowed the water tower's shadow.",
+          "image_prompt": "street a wide shadow lifts from beneath a painted water tower"
+        },
+        {
+          "line": "My shadow cooled one seed tray.",
+          "image_prompt": "park a broad shadow covers seedlings inside a small wooden tray"
+        },
+        {
+          "line": "My neighbor carried the shaded tray.",
+          "image_prompt": "park a neighbor carries the wooden seed tray toward the greenhouse"
+        },
+        {
+          "line": "The clock returned the tower's shadow.",
+          "image_prompt": "street a clock advances as the water tower shadow returns"
+        },
+        {
+          "line": "The greenhouse now shelters every tray.",
+          "image_prompt": "park green seedlings line the shaded side of a glass greenhouse"
+        }
+      ]
+    }
+  ],
+  "mystery": [
+    {
+      "title": "The Library's Impossible Footprints",
+      "description": "A wet footprint puzzle has a clue hidden in plain sight.",
+      "full_story": "Lena found wet prints that seemed to end at a wall of library shelves. That made no sense: a person could not walk through wood. But the open window, a dry blue tile, and an umbrella sticking out from behind the books were all still visible. She asked the librarian to leave the aisle alone while she looked at the pattern.\n\nThe marks came in pairs, all the same distance apart. They were rounder than shoe prints. The tall shelf at the end was a wheeled book rack and the floor dipped gently toward the wall. A gust through the window had pushed it downhill. A wet umbrella hanging on its side dripped where the wheels paused against bumps in the tiles.\n\nLena rolled the rack back and saw the two wheels line up with the marks. The dry tile had a shallow dip the wheels had crossed without touching. The footprints belonged to furniture, and the umbrella had done the rest.",
+      "scenes": [
+        {
+          "line": "Wet footprints ended at solid shelves.",
+          "image_prompt": "library wet footprints end abruptly in front of tall bookshelves"
+        },
+        {
+          "line": "Lena spotted one dry blue tile.",
+          "image_prompt": "library Lena kneels beside one dry blue tile on wet flooring"
+        },
+        {
+          "line": "The window beside it stood open.",
+          "image_prompt": "library an open window lets wind into a row of shelves"
+        },
+        {
+          "line": "Wind moved a wheeled book rack.",
+          "image_prompt": "library a wheeled book rack shifts beside the open window"
+        },
+        {
+          "line": "The rack hid two muddy wheels.",
+          "image_prompt": "library two muddy wheels hide beneath a rolling wooden book rack"
+        },
+        {
+          "line": "A wet umbrella hung behind books.",
+          "image_prompt": "library a dripping umbrella hangs behind a shelf full of books"
+        },
+        {
+          "line": "Lena rolled the rack back slowly.",
+          "image_prompt": "library Lena gently rolls a book rack backward along wet tiles"
+        },
+        {
+          "line": "Two wheels crossed the dry tile.",
+          "image_prompt": "library two small rack wheels cross a bright dry blue tile"
+        },
+        {
+          "line": "The umbrella dripped beside each wheel.",
+          "image_prompt": "library a wet umbrella drips water alongside a muddy rack wheel"
+        },
+        {
+          "line": "Nobody walked here after the rain.",
+          "image_prompt": "library Lena points at the rack and the empty library aisle"
+        }
+      ]
+    },
+    {
+      "title": "The Bell That Rang After Closing",
+      "description": "Two clues explain a bell that seemed to ring on its own.",
+      "full_story": "The librarian heard her counter bell after locking the library. Kai looked at the counter before breakfast and found a paper ring around the bell. One edge of the ring leaned upward. Above it, a pencil balanced on the edge of a small shelf.\n\nKai asked when the heating switched on. It began just after closing. He opened the vent below the counter and held a sample strip of the same paper in the warm current. The strip rose and bent like the ring. It was too light to press the button by itself, but it could nudge the pencil.\n\nHe set the pencil back and waited by the vent. As the ring curled, it pushed the pencil over the shelf edge. The pencil landed on the bell and made the sound. The librarian put the pencil in a cup. Nobody heard the counter bell after closing the next day.",
+      "scenes": [
+        {
+          "line": "The library bell rang after closing.",
+          "image_prompt": "library a small brass counter bell glows under an evening lamp"
+        },
+        {
+          "line": "Its counter held a paper ring.",
+          "image_prompt": "library a paper ring rests around the stem of a brass bell"
+        },
+        {
+          "line": "One paper edge had curled upward.",
+          "image_prompt": "library a curled paper edge leans toward the bell button"
+        },
+        {
+          "line": "Kai opened the warm air vent.",
+          "image_prompt": "library Kai opens a warm air vent below the reading counter"
+        },
+        {
+          "line": "A sample strip bent upward too.",
+          "image_prompt": "library a narrow paper strip curls beside the warm air vent"
+        },
+        {
+          "line": "The bell needed something heavier.",
+          "image_prompt": "library Kai studies a brass bell button beside a crumpled strip"
+        },
+        {
+          "line": "A loose pencil lay just above.",
+          "image_prompt": "library a loose pencil balances on a shelf above the counter"
+        },
+        {
+          "line": "The curling ring tipped the pencil.",
+          "image_prompt": "library the curling paper ring nudges a pencil above the bell"
+        },
+        {
+          "line": "The pencil landed on the button.",
+          "image_prompt": "library a wooden pencil presses the bell button on the counter"
+        },
+        {
+          "line": "The next evening stayed quiet.",
+          "image_prompt": "library the counter bell sits still beside a closed wooden notebook"
+        }
+      ]
+    }
+  ],
+  "analysis": [
+    {
+      "title": "Why Knowledge Becomes the Treasure",
+      "description": "A look at what makes the rebuilding premise of Dr. STONE work.",
+      "full_story": "In Dr. STONE, humanity turns to stone. Taiju awakens thousands of years later and reunites with Senku, who wants to restore civilization through science. That is the setup. What interests me is how it makes the ability to explain a useful idea feel as valuable as finding a tool.\n\nA rebuilding story gives basic knowledge a job. Instead of hearing that a character is clever, we can ask whether someone else could understand the reasoning and put it to use. In my reading, that makes a scientific explanation part of the adventure. It gives the audience a way to follow progress even if the details are unfamiliar.\n\nIt also changes what counts as a treasure. An object can help whoever holds it. An idea can help a whole group once it can be explained and shared. That difference is what gives this premise its energy for me.",
+      "topic_id": "stone-science",
+      "scenes": [
+        {
+          "line": "Why is knowledge the real treasure?",
+          "image_prompt": "original diagram an illuminated book stands beside a simple stone circle"
+        },
+        {
+          "line": "Humanity has turned to stone here.",
+          "image_prompt": "original illustration still unrecognizable stone silhouettes stand under morning sky"
+        },
+        {
+          "line": "Taiju wakes after thousands of years.",
+          "image_prompt": "original symbolic clock shows centuries passing above layered stone bands"
+        },
+        {
+          "line": "He reunites with the scientist Senku.",
+          "image_prompt": "original diagram two anonymous figures face each other beside stones"
+        },
+        {
+          "line": "Senku wants civilization restored through science.",
+          "image_prompt": "original illustration an anonymous silhouette studies careful drawings of simple tools"
+        },
+        {
+          "line": "That goal makes knowledge feel practical.",
+          "image_prompt": "original diagram a notebook connects to basic tools with bright arrows"
+        },
+        {
+          "line": "A useful idea can help others.",
+          "image_prompt": "original illustration an open notebook moves between two anonymous silhouettes"
+        },
+        {
+          "line": "Explanations become part of the adventure.",
+          "image_prompt": "original diagram a trail of explanatory sketches winds across a landscape"
+        },
+        {
+          "line": "Understanding is how progress gets shared.",
+          "image_prompt": "original illustration several anonymous silhouettes share a lit drawing table"
+        },
+        {
+          "line": "That is why science drives it.",
+          "image_prompt": "original diagram bright threads connect an open book to a settlement"
+        }
+      ]
+    },
+    {
+      "title": "One Family Three Hidden Jobs",
+      "description": "A short look at how different points of view make an everyday premise funny.",
+      "full_story": "The premise of Spy x Family gives Twilight an undercover assignment that requires him to form a family. His new wife is an assassin, and the child he adopts can read thoughts. Those are the starting facts. I think the fun in that setup comes from how differently the same room can look to everyone in it.\n\nViewers can keep all three roles in mind at once. When we imagine an ordinary conversation in this household, the spy might care about keeping a cover intact, while someone else could be worried about a completely different secret. The premise leaves room for those kinds of misunderstandings.\n\nFor me, that makes the family setup flexible enough to support a whole comedy. A misunderstanding can give the audience something to figure out before anyone speaks. The larger assignment creates a reason to stay together, and those different points of view give their everyday interactions room to surprise us.",
+      "scenes": [
+        {
+          "line": "One household hides three different roles.",
+          "image_prompt": "three plain keys sit apart on a dark table"
+        },
+        {
+          "line": "A spy needs a believable family.",
+          "image_prompt": "a simple house outline sits beside a folded letter"
+        },
+        {
+          "line": "His new family carries hidden jobs.",
+          "image_prompt": "three envelope silhouettes overlap across a soft blue backdrop"
+        },
+        {
+          "line": "One grownup works as an assassin.",
+          "image_prompt": "a closed folder sits under a small pool of light"
+        },
+        {
+          "line": "The child can hear private thoughts.",
+          "image_prompt": "two blank thought bubbles hover above a simple chair"
+        },
+        {
+          "line": "Viewers know more than the characters.",
+          "image_prompt": "a top view shows three cards facing the audience"
+        },
+        {
+          "line": "That gap changes an ordinary conversation.",
+          "image_prompt": "abstract speech bubbles overlap over an empty dining table"
+        },
+        {
+          "line": "Each role brings a different worry.",
+          "image_prompt": "three symbols line up above an unlit hallway door"
+        },
+        {
+          "line": "Small misunderstandings can carry the comedy.",
+          "image_prompt": "a tilted chair faces two mismatched blank signs"
+        },
+        {
+          "line": "To me, the secret is perspective.",
+          "image_prompt": "three offset panels show one simple house from different angles"
+        }
+      ],
+      "topic_id": "spy-comedy"
+    }
+  ]
 }

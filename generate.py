@@ -41,41 +41,54 @@ def accepted_script(meta, data, hist, report):
     return data
 
 
+class NoEditorialReserve(RuntimeError):
+    """A production slot has no unused, eligible story."""
+
+
 def reserve_script(hist, meta):
-    """Use a reviewed script once, with the same gate as provider drafts."""
+    """Select the first unused, eligible reviewed script."""
     entries = json.loads(pathlib.Path(__file__).with_name("editorial_reserve.json").read_text())
-    data = entries.get(meta["kind"])
-    if not data:
-        return None
-    reserve_id = data["title"]
-    if any(episode.get("reserve_id") == reserve_id for episode in hist["episodes"]):
-        return None
-    if meta["series"] == "anime":
-        topic_id = data.pop("topic_id")
-        avoid = {topic["id"] for topic in editorial.load_topics() if topic["id"] != topic_id}
-        try:
-            meta = series.build(SERIES, hist, avoid)
-        except RuntimeError:
-            return None
-        if meta.get("topic_id") != topic_id:
-            return None
-    report = quality.check(data, hist)
-    if not report["passed"]:
-        print("Editorial reserve failed quality checks:", report["issues"])
-        return None
-    print("Using editorial reserve for", meta["kind"], reserve_id)
-    data = accepted_script(meta, data, hist, report)
-    hist["episodes"][-1]["reserve_id"] = reserve_id
-    return data
+    scripts = entries.get(meta["kind"], [])
+    if isinstance(scripts, dict):
+        scripts = [scripts]
+    if os.environ.get("EDITORIAL_TEST_LATEST") == "1" and os.environ.get("RENDER_CHECK") == "1":
+        scripts = reversed(scripts)
+    used = {episode.get("reserve_id") for episode in hist["episodes"]}
+    for data in scripts:
+        reserve_id = data["title"]
+        if reserve_id in used:
+            continue
+        chosen_meta = meta
+        if meta["series"] == "anime":
+            topic_id = data.get("topic_id")
+            avoid = {topic["id"] for topic in editorial.load_topics() if topic["id"] != topic_id}
+            try:
+                chosen_meta = series.build("anime", hist, avoid)
+            except RuntimeError:
+                continue
+            if chosen_meta.get("topic_id") != topic_id:
+                continue
+        report = quality.check(data, hist)
+        if not report["passed"]:
+            print("Editorial reserve failed quality checks:", report["issues"])
+            continue
+        print("Using editorial reserve for", meta["kind"], reserve_id)
+        result = accepted_script(chosen_meta, data, hist, report)
+        hist["episodes"][-1]["reserve_id"] = reserve_id
+        return result
+    return None
 
 
 def write_script(hist):
     """Generate, quality-check and repair a story before recording it in history."""
     if os.environ.get("EDITORIAL_RESERVE_ONLY") == "1":
-        data = reserve_script(hist, series.build(SERIES, hist))
-        if data:
+        try:
+            meta = series.build(SERIES, hist)
+        except RuntimeError as error:
+            raise NoEditorialReserve(str(error)) from error
+        if data := reserve_script(hist, meta):
             return data
-        raise RuntimeError("No unused editorial reserve passed the quality gate")
+        raise NoEditorialReserve("No unused editorial reserve passed the quality gate")
     avoid = set()
     last_provider_error = None
     for _ in range(5):
@@ -346,8 +359,20 @@ if __name__ == "__main__":
         if not all(os.environ.get(k) for k in ("YT_CLIENT_ID", "YT_CLIENT_SECRET", "YT_REFRESH_TOKEN")):
             raise RuntimeError("YouTube credentials missing; use dry_run for render-only tests")
         creds = youtube_credentials()
-    hist = series.load(SERIES)
-    data = write_script(hist)
+    if os.environ.get("EDITORIAL_TEST_LATEST") == "1" and os.environ.get("RENDER_CHECK") == "1":
+        if os.environ.get("GITHUB_EVENT_NAME") == "schedule":
+            raise RuntimeError("Editorial preview settings are unavailable for scheduled runs")
+        hist = {"episodes": [], "works": {}, "log": {}}
+    else:
+        hist = series.load(SERIES)
+    try:
+        data = write_script(hist)
+    except NoEditorialReserve as error:
+        if not queue_only:
+            raise
+        (OUT / "quality-report.json").write_text(json.dumps(
+            {"passed": False, "state": "skipped", "reason": str(error)}))
+        raise SystemExit(0)
     if not os.environ.get("VOICE"):
         VOICE = data["voice"]
     print(json.dumps({k: v for k, v in data.items() if k != "full_story"}, indent=2))

@@ -81,9 +81,13 @@ class EditorialReserveTests(unittest.TestCase):
                     self.assertTrue(story["quality_report"]["passed"])
                     self.assertEqual(history["episodes"][0]["kind"], kind)
                     self.assertIn("reserve_id", history["episodes"][0])
+                    next_story = generate.write_script(history)
+                    self.assertTrue(next_story["quality_report"]["passed"])
+                    self.assertNotEqual(history["episodes"][0]["reserve_id"],
+                                        history["episodes"][1]["reserve_id"])
                     with self.assertRaisesRegex(RuntimeError, "quality gate"):
                         generate.write_script(history)
-                    self.assertEqual(len(history["episodes"]), 1)
+                    self.assertEqual(len(history["episodes"]), 2)
 
 
 class LLMValidationTests(unittest.TestCase):
