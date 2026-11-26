@@ -5,7 +5,8 @@ on:
     - cron: "17 1 * * *"
   pull_request:
     paths:
-      - "lab_promo.py"
+      - "lab_promo*.py"
+      - "test_lab_promo.py"
       - ".github/workflows/useful-web-lab-promo.yml"
   workflow_dispatch:
 
@@ -25,8 +26,14 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core
-      - run: pip install playwright && python -m playwright install --with-deps chromium
+      - run: pip install playwright
+      - run: python -m unittest test_lab_promo
+      - run: |
+          if ! command -v ffmpeg || ! test -f /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf; then
+            sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=20 update
+            sudo apt-get install -y ffmpeg fonts-dejavu-core
+          fi
+      - run: python -m playwright install chromium
       - name: Verify live release and record the demo
         id: demo
         run: |
@@ -56,7 +63,7 @@ jobs:
 
   publish:
     needs: render
-    if: github.event_name == 'schedule' && github.run_attempt == 1 && needs.render.outputs.rendered == 'true' && vars.LAB_PROMO_PROFILE_LINK_VERIFIED == 'true'
+    if: always() && !cancelled() && github.event_name == 'schedule' && github.run_attempt == 1 && vars.LAB_PROMO_PROFILE_LINK_VERIFIED == 'true'
     permissions:
       contents: write
     runs-on: ubuntu-latest
@@ -69,6 +76,7 @@ jobs:
         with:
           python-version: "3.12"
       - uses: actions/download-artifact@v7
+        if: needs.render.result == 'success' && needs.render.outputs.rendered == 'true'
         with:
           name: useful-web-lab-promo
           path: out/lab-promo

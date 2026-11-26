@@ -2,10 +2,12 @@ from datetime import datetime, timezone
 import hashlib
 import json
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 from urllib.error import HTTPError
 
-from lab_promo import SITE, live_release, select
+from lab_promo import SITE, check_profile_destination, live_release, select
+from lab_promo_publish import reconcile
 
 NOW = datetime(2026, 11, 26, 20, tzinfo=timezone.utc)
 DAY = "2026-11-26"
@@ -46,3 +48,24 @@ class LabPromoTests(unittest.TestCase):
         with patch("lab_promo.fetch", side_effect=HTTPError(SITE, 404, "Not found", {}, None)):
             with self.assertRaises(HTTPError):
                 live_release("screenshot-cleaner", digest)
+
+    def test_featured_app_reachable_from_public_profile_destination(self):
+        url = SITE + "signal-garden/"
+        with patch("lab_promo.fetch", return_value=b'<a href="signal-garden/">Play</a>'):
+            check_profile_destination(url)
+        with patch("lab_promo.fetch", return_value=b"<p>No app link</p>"):
+            with self.assertRaises(ValueError):
+                check_profile_destination(url)
+
+    def test_timeout_reconciliation_uses_public_marker_without_uploading(self):
+        path = Path("screenshot-cleaner-" + SHA + ".json")
+        pending = [(path, {"state": "reserved"})]
+        matching = {"id": "confirmed-id", "snippet": {"description": "Lab release: " + path.stem},
+                    "status": {"privacyStatus": "public"}}
+        with patch("lab_promo_publish.recent_uploads", return_value=[matching]), patch("lab_promo_publish.save") as save:
+            reconcile(object(), pending)
+            save.assert_called_once_with(path, {"state": "public", "public_video_id": "confirmed-id"})
+        for uploads in ([], [{**matching, "status": {"privacyStatus": "private"}}]):
+            with patch("lab_promo_publish.recent_uploads", return_value=uploads), patch("lab_promo_publish.save") as save:
+                reconcile(object(), pending)
+                save.assert_not_called()

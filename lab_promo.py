@@ -5,8 +5,10 @@ import json
 import re
 import subprocess
 from datetime import datetime, timedelta, timezone
+from html.parser import HTMLParser
 from pathlib import Path
 from urllib.error import HTTPError
+from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 
 SITE = "https://yusuffraht-hue.github.io/useful-web-lab-public/"
@@ -73,6 +75,26 @@ def live_release(app, expected=None):
     return sha, url
 
 
+def check_profile_destination(url):
+    if url == SITE:
+        return
+
+    class SiteLinks(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.targets = set()
+
+        def handle_starttag(self, tag, attrs):
+            href = dict(attrs).get("href")
+            if tag == "a" and href:
+                self.targets.add(urljoin(SITE, href))
+
+    links = SiteLinks()
+    links.feed(fetch(SITE).decode("utf-8"))
+    if url not in links.targets:
+        raise ValueError("The promoted app is missing from the Useful Web Lab profile destination")
+
+
 def run(*args):
     return subprocess.run(args, check=True, capture_output=True, text=True).stdout
 
@@ -89,8 +111,18 @@ def demo(app, url, sha, chromium=None):
             accept_downloads=True,
         )
         # Demos run without file uploads, credentials, third-party requests or live user data.
-        context.route("**/*", lambda route: route.continue_() if route.request.url.startswith(SITE)
-                      and route.request.method == "GET" else route.abort())
+        live_html = fetch(url)
+
+        def route_request(route):
+            request = route.request
+            if request.method != "GET" or not request.url.startswith(SITE):
+                route.abort()
+            elif request.url == url and request.is_navigation_request():
+                route.fulfill(content_type="text/html; charset=utf-8", body=live_html)
+            else:
+                route.continue_()
+
+        context.route("**/*", route_request)
         page = context.new_page()
         page.on("pageerror", lambda error: errors.append(str(error)))
         response = page.goto(url, wait_until="domcontentloaded")
@@ -138,16 +170,16 @@ def render(app, raw):
               else "Tap the numbered tiles\nLight the whole garden")
     captions = ((0, 5, f"{title}\n{value}"), (5, 17, action),
                 (17, 25, "Try it free\nUseful Web Lab • channel profile"))
-    overlays = ["scale=486:810", "pad=540:960:27:10:0x151924"]
+    overlays = ["fps=30", "scale=444:740", "pad=540:960:48:144:0x151924",
+                "tpad=stop_mode=clone:stop_duration=25"]
     for i, (start, end, caption) in enumerate(captions):
         label = OUT / f"caption-{i}.txt"
         label.write_text(caption)
         overlays.append(
             "drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:"
-            f"textfile={label}:fontsize=24:fontcolor=white:x=(w-tw)/2:y=851:line_spacing=9:"
+            f"textfile={label}:fontsize=24:fontcolor=white:x=(w-tw)/2:y=66:line_spacing=9:"
             f"enable='between(t,{start},{end})'"
         )
-    overlays.append("tpad=stop_mode=clone:stop_duration=25")
     final = OUT / "final.mp4"
     run("ffmpeg", "-loglevel", "error", "-y", "-i", str(raw), "-vf", ",".join(overlays),
         "-t", "24", "-an", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(final))
@@ -184,6 +216,7 @@ def main():
             return
         app = item["project"]
     sha, url = live_release(app, item["sha256"] if item else None)
+    check_profile_destination(url)
     render(app, demo(app, url, sha, args.chromium))
     # Reject a release that changed while the demo was recorded.
     live_release(app, sha)

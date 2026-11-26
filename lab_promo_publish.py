@@ -3,10 +3,8 @@ import json
 import os
 import subprocess
 from datetime import datetime
-from pathlib import Path
 
-from lab_promo import DEMOS, HISTORY, LOCAL, OUT, SITE, live_release
-from post_youtube import publisher_from_env
+from lab_promo import DEMOS, HISTORY, LOCAL, OUT, check_profile_destination, live_release
 
 
 def save(path, state):
@@ -28,14 +26,7 @@ def recent_uploads(publisher):
     return publisher._proxy("videos", "GET", {"part": "snippet,status", "id": ",".join(ids)}).get("items", [])
 
 
-def reconcile(publisher):
-    pending = []
-    for path in HISTORY.glob("*.json"):
-        record = json.loads(path.read_text())
-        if record["state"] == "reserved":
-            pending.append((path, record))
-    if not pending:
-        return
+def reconcile(publisher, pending):
     videos = recent_uploads(publisher)
     for path, record in pending:
         marker = "Lab release: " + path.stem
@@ -50,16 +41,26 @@ def reconcile(publisher):
 def main():
     if os.environ.get("GITHUB_RUN_ATTEMPT") != "1":
         raise SystemExit("Reruns cannot upload promos")
-    report = json.loads((OUT / "report.json").read_text())
-    if report.get("state") != "verified" or report.get("sample") is not False:
+    report_path = OUT / "report.json"
+    report = json.loads(report_path.read_text()) if report_path.exists() else {}
+    can_post = report.get("state") == "verified" and report.get("sample") is False
+    records = {path: json.loads(path.read_text()) for path in HISTORY.glob("*.json")}
+    pending = [(path, record) for path, record in records.items() if record["state"] == "reserved"]
+    if not pending and not can_post:
+        return
+    from post_youtube import publisher_from_env
+
+    publisher = publisher_from_env()
+    publisher.preflight()
+    if pending:
+        reconcile(publisher, pending)
+    if not can_post:
         return
     app, sha = report["project"], report["sha256"]
     _, url = live_release(app, sha)
     if url != report["url"]:
         raise ValueError("Promotion URL differs from the verified site")
-    publisher = publisher_from_env()
-    publisher.preflight()
-    reconcile(publisher)
+    check_profile_destination(url)
     day = datetime.now(LOCAL).date().isoformat()
     records = [json.loads(path.read_text()) for path in HISTORY.glob("*.json")]
     key = f"{app}-{sha}"
