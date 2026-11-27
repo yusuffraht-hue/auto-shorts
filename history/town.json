@@ -1,40 +1,48 @@
 {
- "episodes": [
-  {
-   "title": "Underground Whispers in Blocky Town",
-   "kind": "town",
-   "work": null
-  },
-  {
-   "title": "Blocky School Secret Behind Friendly Teacher",
-   "kind": "town",
-   "work": null
-  },
-  {
-   "title": "Hidden Maze Beneath Blocky Town Schools",
-   "kind": "town",
-   "work": null
-  },
-  {
-   "title": "Hidden Grin in Blocky Streets",
-   "kind": "town",
-   "work": null
-  },
-  {
-   "title": "When the Sweetest Smile Hid a Dark Secret",
-   "kind": "town",
-   "work": null
-  },
-  {
-   "title": "When the Cracked Tile Swallowed Color",
-   "kind": "town",
-   "work": null
-  }
- ],
- "works": {},
- "log": {},
- "recent_stories": [
-  "In this town of bright blocks, Milo Brickson-orange hair, teal overalls, red sneakers, patched cape-noticed the sky losing its hue. The mornings arrived in gray, and the oncevivid walls now looked dull, as if a giant eraser had swept across the streets. Everyone adored Mrs. Lumen, the baker with a permanent smile, whose pastries smelled of sugar and sunshine. Children lined up daily, trading coins for her golden croissants. Milo chased a trail of glittering crumbs that led straight to her shop, hoping to find the missing colors and restore the town's rainbow. Behind the warm ovens, Milo uncovered a hidden vault brimming with jars of stolen pigments, each glowing faintly in the dim light. Mrs. Lumen's eyes suddenly glowed violet as she offered fresh cupcakes, claiming she needed the colors to keep the town bright. A soft click sounded behind the bakery door as dusk fell, and Milo realized the true danger was only beginning, and a hidden lever clicked, revealing a dark passage beyond the bakery.",
-  "In Brickton, a rule whispered in every blocky hallway: never step on a cracked tile after dusk, or the town will lose its color. Bricklyn, a spry youngster with a bright red cap and patched overalls, darts through the cobblestone streets, clutching a glowing cube meant for the mayor's hall before nightfall. She spots the cracked tile on her route and, heart thudding, steps over it, ignoring the warning. Instantly, the vivid walls begin to bleed, their hues draining into the air. Shadows ooze from the market stalls, forming black streams that crawl along the floor. Panic flickers, but Bricklyn spots a faint glow beneath a stall-a doorway yawning open, pulsing with strange light. She realizes the cracked tile was not a flaw but a portal to an unseen block beneath Brickton. Something shifts behind the market curtains, eyes glinting in the darkness. What will emerge when the portal fully awakens?"
- ]
+  "episodes": [
+    {
+      "title": "Underground Whispers in Blocky Town",
+      "kind": "town",
+      "work": null
+    },
+    {
+      "title": "Blocky School Secret Behind Friendly Teacher",
+      "kind": "town",
+      "work": null
+    },
+    {
+      "title": "Hidden Maze Beneath Blocky Town Schools",
+      "kind": "town",
+      "work": null
+    },
+    {
+      "title": "Hidden Grin in Blocky Streets",
+      "kind": "town",
+      "work": null
+    },
+    {
+      "title": "When the Sweetest Smile Hid a Dark Secret",
+      "kind": "town",
+      "work": null
+    },
+    {
+      "title": "When the Cracked Tile Swallowed Color",
+      "kind": "town",
+      "work": null
+    },
+    {
+      "title": "The Kingdom That Paid With Shade",
+      "kind": "kingdom",
+      "work": null,
+      "topic_id": null,
+      "reserve_id": "The Kingdom That Paid With Shade"
+    }
+  ],
+  "works": {},
+  "log": {},
+  "recent_stories": [
+    "In this town of bright blocks, Milo Brickson-orange hair, teal overalls, red sneakers, patched cape-noticed the sky losing its hue. The mornings arrived in gray, and the oncevivid walls now looked dull, as if a giant eraser had swept across the streets. Everyone adored Mrs. Lumen, the baker with a permanent smile, whose pastries smelled of sugar and sunshine. Children lined up daily, trading coins for her golden croissants. Milo chased a trail of glittering crumbs that led straight to her shop, hoping to find the missing colors and restore the town's rainbow. Behind the warm ovens, Milo uncovered a hidden vault brimming with jars of stolen pigments, each glowing faintly in the dim light. Mrs. Lumen's eyes suddenly glowed violet as she offered fresh cupcakes, claiming she needed the colors to keep the town bright. A soft click sounded behind the bakery door as dusk fell, and Milo realized the true danger was only beginning, and a hidden lever clicked, revealing a dark passage beyond the bakery.",
+    "In Brickton, a rule whispered in every blocky hallway: never step on a cracked tile after dusk, or the town will lose its color. Bricklyn, a spry youngster with a bright red cap and patched overalls, darts through the cobblestone streets, clutching a glowing cube meant for the mayor's hall before nightfall. She spots the cracked tile on her route and, heart thudding, steps over it, ignoring the warning. Instantly, the vivid walls begin to bleed, their hues draining into the air. Shadows ooze from the market stalls, forming black streams that crawl along the floor. Panic flickers, but Bricklyn spots a faint glow beneath a stall-a doorway yawning open, pulsing with strange light. She realizes the cracked tile was not a flaw but a portal to an unseen block beneath Brickton. Something shifts behind the market curtains, eyes glinting in the darkness. What will emerge when the portal fully awakens?",
+    "The little kingdom sat between two long roads. Its square had stone arches and almost no shade at noon. Travelers arrived tired and thirsty, then hurried through because there was nowhere cool to wait. The tent maker asked the mayor to try a trade: give every wagon a shady place to stop, and see what people could spare in return. The mayor had no canvas. A wagoner offered an old sailcloth, saying a cool place to drink would be worth more than the cloth in his cart. Together they stretched it between two arches. More wagoners stopped, and soon someone supplied a rope and someone else brought another sail. The covered lane filled with stalls. Merchants still paid for their goods with coins, but the shelter was shared freely. The kingdom's best trade was a public space that made people want to stay, and its wealth was measured partly in cooler afternoons."
+  ]
 }
