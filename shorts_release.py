@@ -9,7 +9,8 @@ from datetime import datetime, time, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from posting_schedule import recovery_slot, scheduled_slot
+from posting_schedule import (CALGARY, SCHEDULED_WINDOW, ExpiredPostingSlot, planned_slot_time,
+                              recovery_slot, scheduled_slot)
 
 OUT = Path("out")
 LEDGER = Path("history/production")
@@ -56,18 +57,13 @@ def save_quota_block():
                     "resume_at": quota_reset(now).isoformat()})
 
 
-def scheduled_block(slot, now):
+def scheduled_block(slot):
     destination = LEDGER / f"{slot.replace(':', '-')}.json"
     paths = subprocess.check_output(
-        ["git", "ls-tree", "-r", "--name-only", "FETCH_HEAD", "--", str(destination), str(QUOTA)],
+        ["git", "ls-tree", "-r", "--name-only", "FETCH_HEAD", "--", str(destination)],
         text=True, timeout=30).splitlines()
     if str(destination) in paths:
         return "The slot already has an upload reservation"
-    if str(QUOTA) in paths:
-        record = json.loads(subprocess.check_output(
-            ["git", "show", f"FETCH_HEAD:{QUOTA}"], timeout=30))
-        if quota_active(record, now):
-            return f"YouTube quota is paused until {record['resume_at']}"
     return None
 
 
@@ -111,8 +107,14 @@ def route():
             if kind != slot["format"]:
                 raise ValueError("Requested format does not match the recovery slot")
         else:
-            slot = scheduled_slot(os.environ["CRON"], started)
-        blocked = scheduled_block(slot["key"], datetime.now(timezone.utc))
+            try:
+                slot = scheduled_slot(os.environ["CRON"], started)
+            except ExpiredPostingSlot as error:
+                print(f"Skipping expired slot: {error}")
+                with Path(os.environ["GITHUB_OUTPUT"]).open("a") as output:
+                    print("proceed=false", file=output)
+                return
+        blocked = scheduled_block(slot["key"])
     if blocked:
         print(blocked)
     if slot["format"] not in FORMATS:
@@ -218,10 +220,14 @@ def publish(kind, slot):
         if already_reserved(kind, slot, key, manifest, records):
             print("Slot or content already reserved")
             return
-        # A missing or unsafe attempt is isolated to its slot and content key.
-        local_now = datetime.now(timezone(timedelta(hours=-6)))
-        if local_now.date().isoformat() != record["day"]:
-            raise RuntimeError("The original Calgary posting day has ended")
+        now = datetime.now(CALGARY)
+        if os.environ.get("GITHUB_EVENT_NAME") == "schedule":
+            if now >= planned_slot_time(slot) + SCHEDULED_WINDOW:
+                print("Skipped because the scheduled posting window ended")
+                return
+        elif now.date().isoformat() != record["day"]:
+            print("Skipped because the original Calgary posting day ended")
+            return
 
     receipt = OUT / "youtube-receipt.json"
     publisher = publisher_from_env()
