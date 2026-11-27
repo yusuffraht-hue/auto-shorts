@@ -1,5 +1,6 @@
 """Use the current Hacker News ranking to choose a sourced tech explainer."""
 import json
+import os
 import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
@@ -99,16 +100,24 @@ def main():
                                         - datetime.fromisoformat(record["day"]).date()).days < 30:
                 used.add("topic:" + record["topic"])
     report_path = OUT / "quality-report.json"
-    topic = select_topic(datetime.now(timezone.utc), used)
+    preview = os.environ.get("RENDER_CHECK") == "1" and os.environ.get("EDITORIAL_TEST_LATEST") == "1"
+    if preview:
+        key, _, headline, source, lines = CARDS[0]
+        lines = ("Your browser begins with a question.", *lines[1:])
+        topic = {"id": 0, "key": key, "rank": None, "headline": headline,
+                 "source": source, "discussion": None, "lines": lines}
+    else:
+        topic = select_topic(datetime.now(timezone.utc), used)
     if not topic:
         report_path.write_text(json.dumps({"passed": False, "state": "skipped",
                                            "reason": "No fresh reviewed trend matched"}))
         return
     labels = ("TREND SIGNAL", "THE QUESTION", "HOW IT WORKS", "WHAT TO REMEMBER")
+    signal = "Render preview" if preview else f"Hacker News ranking #{topic['rank']} at selection"
     scenes = []
     for index, line in enumerate(topic["lines"]):
         illustrate(OUT / f"shot_{index}.png", labels[index], topic["headline"],
-                   f"Hacker News ranking #{topic['rank']} at selection" if index == 0 else line, index)
+                   signal if index == 0 else line, index)
         scenes.append({"line": line, "image_prompt": ""})
     data = {"title": topic["headline"], "description":
             f"Tech explainer. Trend signal: Hacker News #{topic['rank']} at selection.\n"
@@ -116,6 +125,8 @@ def main():
             "scenes": scenes, "style": "", "tags": ["technology", "explainer"]}
     build_video(data)
     report_path.write_text(json.dumps({"passed": True, **topic}, indent=2))
+    if preview:
+        return
     (OUT / "youtube-pending.json").write_text(json.dumps({
         "metadata": _youtube_upload_body(data), "quality_passed": True,
         "content_key": f"hn:{topic['id']}", "topic": topic["key"]}))
