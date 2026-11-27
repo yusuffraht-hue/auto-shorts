@@ -167,8 +167,16 @@ def local_voice(text, path):
 
 
 async def tts_words(text, path):
-    """Speech + [(start, end, word)] timings. Retries, backup voices, then Google TTS as a last resort."""
+    """Synthesize narration and return word timings when available."""
     if os.environ.get("LOCAL_MEDIA_ONLY") == "1":
+        from offline_narration import synthesize
+
+        try:
+            if synthesize(text, path):
+                return []
+        except Exception as error:
+            print(f"Kokoro synthesis failed ({type(error).__name__})")
+        print("Narration: offline Flite fallback")
         local_voice(text, path)
         return []
     voices = [VOICE, "en-US-AndrewNeural", "en-US-GuyNeural", "en-US-AriaNeural"]

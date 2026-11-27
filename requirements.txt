@@ -4,3 +4,5 @@ google-api-python-client
 google-auth
 google-auth-oauthlib
 gTTS
+kokoro-onnx==0.6.1
+soundfile==0.14.0
