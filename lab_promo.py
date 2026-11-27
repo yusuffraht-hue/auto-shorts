@@ -284,8 +284,10 @@ def demo(app, url, sha, chromium=None, sample=None):
 
 
 def render(app, raw, details=None):
+    import asyncio
+
     from PIL import ImageFont
-    from generate import local_voice
+    from generate import tts_words
 
     _, title, value, sample = details or (*DEMOS[app], None)
     actions = {"screenshot-cleaner": "Try the sample batch\nCover details, then export",
@@ -309,7 +311,7 @@ def render(app, raw, details=None):
         )
     final = OUT / "final.mp4"
     audio = OUT / "showcase.mp3"
-    local_voice(f"{title}. {value}. {action.replace(chr(10), '. ')}. Try it at Useful Web Lab.", audio)
+    asyncio.run(tts_words(f"{title}. {value}. {action.replace(chr(10), '. ')}. Try it at Useful Web Lab.", audio))
     run("ffmpeg", "-loglevel", "error", "-y", "-filter_threads", "2", "-i", str(raw), "-i", str(audio),
         "-vf", ",".join(overlays), "-af", "loudnorm=I=-16:TP=-1.5:LRA=11,apad",
         "-t", "24", "-c:a", "aac", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(final))

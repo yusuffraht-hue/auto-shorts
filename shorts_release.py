@@ -126,7 +126,7 @@ def route():
 
 def render(kind):
     env = {**os.environ, "LOCAL_MEDIA_ONLY": "1", "DRY_RUN": "false", "PRIVACY": "private",
-           "YOUTUBE_QUEUE_ONLY": "true"}
+           "YOUTUBE_QUEUE_ONLY": "true", "SHORTS_NEURAL_NARRATION": "1"}
     module = {"trending": "trend_video.py", "showcase": "lab_promo.py"}.get(kind, "generate.py")
     if module == "generate.py":
         env.update(SERIES="anime" if kind == "analysis" else "town", ORIGINAL_FORMAT=kind,

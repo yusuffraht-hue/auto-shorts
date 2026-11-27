@@ -167,31 +167,38 @@ def local_voice(text, path):
 
 
 async def tts_words(text, path):
-    """Speech + [(start, end, word)] timings. Retries, backup voices, then Google TTS as a last resort."""
-    if os.environ.get("LOCAL_MEDIA_ONLY") == "1":
+    """Use Edge word timings when available and fall back to offline narration."""
+    if os.environ.get("LOCAL_MEDIA_ONLY") == "1" and os.environ.get("SHORTS_NEURAL_NARRATION") != "1":
+        print("Narration: offline Flite")
         local_voice(text, path)
         return []
     voices = [VOICE, "en-US-AndrewNeural", "en-US-GuyNeural", "en-US-AriaNeural"]
-    for attempt, voice in enumerate(voices * 2):
+    if os.environ.get("SHORTS_NEURAL_NARRATION") == "1":
+        voices = list(dict.fromkeys([VOICE, "en-US-AndrewNeural"]))
+    else:
+        voices *= 2
+    for attempt, voice in enumerate(voices):
         words = []
         try:
             try:
                 com = edge_tts.Communicate(text, voice, rate=RATE, boundary="WordBoundary")
             except TypeError:
                 com = edge_tts.Communicate(text, voice, rate=RATE)
-            with open(path, "wb") as f:
-                async for ch in com.stream():
-                    if ch["type"] == "audio":
-                        f.write(ch["data"])
-                    elif ch["type"] == "WordBoundary":
-                        s = ch["offset"] / 1e7
-                        words.append((s, s + ch["duration"] / 1e7, ch["text"]))
+            async with asyncio.timeout(20):
+                with open(path, "wb") as f:
+                    async for ch in com.stream():
+                        if ch["type"] == "audio":
+                            f.write(ch["data"])
+                        elif ch["type"] == "WordBoundary":
+                            s = ch["offset"] / 1e7
+                            words.append((s, s + ch["duration"] / 1e7, ch["text"]))
             if pathlib.Path(path).stat().st_size > 1000:
+                print("Narration: Edge", voice)
                 return words
         except Exception as e:
             print("tts retry:", voice, repr(e)[:120])
         await asyncio.sleep(2 + attempt)
-    print("tts: falling back to local narration")
+    print("Narration: offline Flite fallback")
     local_voice(text, path)
     return []
 
