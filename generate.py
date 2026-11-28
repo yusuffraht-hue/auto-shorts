@@ -238,16 +238,16 @@ def caption_font_size(text):
     """Shrink long uppercase captions so their text and box stay inside the 1080px frame."""
     length = max(len(str(text or "")), 1)
     estimated_width_per_character = 0.82
-    available_width = 960  # leaves room for the text border and box padding
+    available_width = 820  # leaves room for padding and the app's right-side controls
     return max(24, min(76, int(available_width / (estimated_width_per_character * length))))
 
 
-def make_clip(i, scene, hero, seed, style):
+def make_clip(i, scene, hero, seed, style, *, denoise=8):
     img, aud, clip = OUT / f"s{i}.jpg", OUT / f"s{i}.mp3", OUT / f"s{i}.mp4"
     prompt = f"{scene['image_prompt']}. Composition: {SHOT_COMPOSITIONS[i % len(SHOT_COMPOSITIONS)]}. Visual anchor: {hero}. {style}"
     shot = OUT / f"shot_{i}.png"
     if shot.exists():
-        img, pre = shot, "nlmeans=s=8:p=7:r=15,"  # Blender still: smooth render grain
+        img, pre = shot, f"nlmeans=s={denoise}:p=7:r=15,"
     else:
         if os.environ.get("LOCAL_MEDIA_ONLY") == "1":
             raise RuntimeError(f"Missing local illustration for scene {i + 1}")
@@ -258,21 +258,22 @@ def make_clip(i, scene, hero, seed, style):
     if not words:
         words = even_words(scene["line"], dur - 0.35)
     caps = chunks(words, dur)
-    frames = int(dur * 25)
-    zoom = ("z='min(zoom+0.0011,1.22)'" if i % 2 == 0
-            else "z='if(eq(on,1),1.22,max(zoom-0.0011,1.0))'")
+    frames = max(2, int(dur * 25))
+    # Ease the camera in and out over the length of each shot.
+    motion = f"(1-cos(PI*on/{frames - 1}))/2"
+    zoom = f"1.01+0.09*{motion}" if i % 2 == 0 else f"1.10-0.09*{motion}"
     vf = (pre + "scale=1620:2880:force_original_aspect_ratio=increase,crop=1620:2880,"
-          f"zoompan={zoom}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={frames}:s=1080x1920:fps=25")
+          f"zoompan=z='{zoom}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={frames}:s=1080x1920:fps=25")
     for k, (s, e, txt) in enumerate(caps):
         cf = OUT / f"c{i}_{k}.txt"
         cf.write_text(txt.upper())
-        color = "white"
-        vf += (f",drawtext=fontfile={FONT}:textfile={cf}:expansion=none:fontcolor={color}:fontsize={caption_font_size(txt)}:box=1:boxcolor=black@0.32:boxborderw=18:shadowcolor=black:shadowx=2:shadowy=2:"
-               f"borderw=9:bordercolor=black:x=(w-text_w)/2:y=h*0.68:"
-               f"enable='between(t,{s:.2f},{e:.2f})'")
+        vf += (f",drawtext=fontfile={FONT}:textfile={cf}:expansion=none:fontcolor=white:"
+               f"fontsize={caption_font_size(txt)}:box=1:boxcolor=0x10141d@0.84:boxborderw=14:"
+               f"x=(w-text_w)/2-36:y=h*0.71-text_h/2:"
+               f"enable='gte(t,{s:.4f})*lt(t,{e:.4f})'")
     subprocess.run(
         ["ffmpeg", "-y", "-filter_threads", "2", "-i", str(img), "-i", str(aud), "-vf", vf, "-af", "loudnorm=I=-16:TP=-1.5:LRA=11,apad",
-         "-t", f"{dur:.2f}", "-c:v", "libx264", "-preset", "veryfast", "-threads", "2", "-pix_fmt", "yuv420p", "-c:a", "aac",
+         "-t", f"{dur:.2f}", "-c:v", "libx264", "-crf", "20", "-preset", "veryfast", "-threads", "2", "-pix_fmt", "yuv420p", "-c:a", "aac",
          "-ar", "44100", str(clip)],
         check=True, capture_output=True)
     return clip
@@ -299,15 +300,16 @@ def blender_stills(data):
         print("blender stills failed, using AI images:", repr(e)[:200])
 
 
-def build_video(data):
+def build_video(data, *, denoise=8):
     hero = data.get("hero") or "a friendly blocky toy character with a bright jacket"
     seed = random.randint(1, 10**6)  # one seed for the whole video keeps the look consistent
-    clips = [make_clip(i, s, hero, seed, data["style"]) for i, s in enumerate(data["scenes"])]
+    clips = [make_clip(i, s, hero, seed, data["style"], denoise=denoise)
+             for i, s in enumerate(data["scenes"])]
     lst = OUT / "list.txt"
     lst.write_text("".join(f"file '{c.name}'\n" for c in clips))
     final = OUT / "final.mp4"
     subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst),
-                    "-c", "copy", str(final)], check=True, capture_output=True)
+                    "-c", "copy", "-movflags", "+faststart", str(final)], check=True, capture_output=True)
     return final
 
 
@@ -392,9 +394,10 @@ if __name__ == "__main__":
         for index, scene in enumerate(data["scenes"]):
             illustrate(OUT / f"shot_{index}.png", "ANIME & NOVEL STORIES",
                        data["title"], scene["line"], index)
+        video = build_video(data)
     else:
         blender_stills(data)
-    video = build_video(data)
+        video = build_video(data, denoise=24)
     dry_run = os.environ.get("DRY_RUN", "false").lower() == "true"
     if dry_run:
         print("DRY RUN: video generated but not uploaded; history was not changed.")

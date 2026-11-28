@@ -1,6 +1,7 @@
 """Render blocky-town stills for the story video.
 Usage: blender -b -noaudio -P blender/render_shots.py -- spec.json outdir"""
 import bpy, math, random, sys, json, os, time
+from mathutils import Vector
 
 args = sys.argv[sys.argv.index("--") + 1:]
 SPEC = json.load(open(args[0]))
@@ -274,6 +275,10 @@ def character(c, x, y, yaw, pose, emotion):
 
     def part(loc, dim, rgb, parent=root, **kw):
         o = box(loc, dim, rgb, parent, **kw)
+        if min(dim) >= 0.15:
+            bevel = o.modifiers.new("Rounded toy edges", "BEVEL")
+            bevel.width = 0.045
+            bevel.segments = 2
         made.append(o)
         return o
 
@@ -350,6 +355,7 @@ con = cam.constraints.new("TRACK_TO")
 con.target = target
 con.track_axis = "TRACK_NEGATIVE_Z"
 con.up_axis = "UP_Y"
+key_light = light("AREA", (0, 0, 0), 0, (1.0, 0.87, 0.73), size=3.0)
 
 
 def set_time(kind, interior):
@@ -380,7 +386,12 @@ for shot in SPEC["shots"]:
     t0 = time.time()
     ox, _, interior = ZONES[shot["setting"]]
     fx, fy = ox, FOCUS_Y
-    set_time(shot.get("time", "day"), interior)
+    time_of_day = shot.get("time", "day")
+    set_time(time_of_day, interior)
+    key_light.location = (fx - 2.4, fy - 3.2, 4.6)
+    light_direction = Vector((fx, fy, 1.8)) - key_light.location
+    key_light.rotation_euler = light_direction.to_track_quat("-Z", "Y").to_euler()
+    key_light.data.energy = 290 if interior or time_of_day != "day" else 95
     made = []
     for i, c in enumerate(shot["chars"]):
         if c["role"] == "hero":
