@@ -2,6 +2,7 @@
 (edge-tts) -> images (Pollinations flux) -> vertical video with big word-by-word captions
 (ffmpeg) -> YouTube upload -> episode history."""
 import asyncio, json, os, pathlib, random, re, shutil, subprocess, textwrap, time, urllib.parse
+from copy import deepcopy
 
 import edge_tts
 import requests
@@ -9,6 +10,7 @@ from llm import call_llm
 import editorial
 import series
 import quality
+import shorts_release
 
 OUT = pathlib.Path(os.environ.get("SHORTS_OUTPUT", "out"))
 OUT.mkdir(parents=True, exist_ok=True)
@@ -51,8 +53,12 @@ def reserve_script(hist, meta):
     scripts = entries.get(meta["kind"], [])
     if isinstance(scripts, dict):
         scripts = [scripts]
-    if os.environ.get("EDITORIAL_TEST_LATEST") == "1" and os.environ.get("RENDER_CHECK") == "1":
+    preview = os.environ.get("EDITORIAL_TEST_LATEST") == "1" and os.environ.get("RENDER_CHECK") == "1"
+    reserved_keys = set()
+    if preview:
         scripts = reversed(scripts)
+    elif os.environ.get("EDITORIAL_RESERVE_ONLY") == "1":
+        reserved_keys = {record.get("content_key") for record in shorts_release.production_records()}
     used = {episode.get("reserve_id") for episode in hist["episodes"]}
     for data in scripts:
         reserve_id = data["title"]
@@ -72,8 +78,14 @@ def reserve_script(hist, meta):
         if not report["passed"]:
             print("Editorial reserve failed quality checks:", report["issues"])
             continue
+        # A prepared upload can be reserved in the ledger without having entered episode history.
+        candidate_history = deepcopy(hist) if reserved_keys else hist
+        result = accepted_script(chosen_meta, data, candidate_history, report)
+        if reserved_keys and shorts_release.identity({"metadata": _youtube_upload_body(result)}) in reserved_keys:
+            print("Skipping reserved editorial script:", reserve_id)
+            continue
         print("Using editorial reserve for", meta["kind"], reserve_id)
-        result = accepted_script(chosen_meta, data, hist, report)
+        hist.update(candidate_history)
         hist["episodes"][-1]["reserve_id"] = reserve_id
         return result
     return None

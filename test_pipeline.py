@@ -9,6 +9,7 @@ import llm
 import series
 import shots
 import quality
+import shorts_release
 
 
 
@@ -71,6 +72,20 @@ class QualityGateTests(unittest.TestCase):
 
 
 class EditorialReserveTests(unittest.TestCase):
+    def test_production_skips_reserved_script_without_recording_it(self):
+        history = {"episodes": [], "works": {}, "log": {}}
+        with (patch.object(generate, "SERIES", "town"),
+              patch.dict(os.environ, {"ORIGINAL_FORMAT": "world", "EDITORIAL_RESERVE_ONLY": "1",
+                                      "EDITORIAL_TEST_LATEST": "0"}),
+              patch.object(shorts_release, "production_records", return_value=[]) as ledger):
+            first = generate.write_script({"episodes": [], "works": {}, "log": {}})
+            key = shorts_release.identity({"metadata": generate._youtube_upload_body(first)})
+            ledger.return_value = [{"state": "needs_reconciliation", "content_key": key}]
+            next_story = generate.write_script(history)
+            self.assertNotEqual(next_story["title"], first["title"])
+            self.assertEqual([item["title"] for item in history["episodes"]], [next_story["title"]])
+            self.assertEqual(history["recent_stories"], [next_story["full_story"]])
+
     def test_provider_failure_uses_each_distinct_reviewed_script_once(self):
         reserves = json.loads(Path(__file__).with_name("editorial_reserve.json").read_text())
         for kind in (*series.ORIGINAL_FORMATS, "analysis"):

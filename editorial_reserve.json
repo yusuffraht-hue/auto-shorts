@@ -93,6 +93,54 @@
           "image_prompt": "market shaded pavement carries shoppers beneath a long patchwork canopy"
         }
       ]
+    },
+    {
+      "title": "The Town Where Shadows Held Rain",
+      "description": "A borrowed shadow can water a garden. Lina finds out who has been paying for her extra rain.",
+      "full_story": "On the hottest week of summer, Lina noticed rain falling under a bench even though the park had a cloudless sky. The wet patch had the exact shape of its shadow. When the groundskeeper moved the bench, the rain followed the shadow and watered a bed of wilted flowers. Lina dragged another bench over for her thirsty seedlings and watched the two shadows join. The water stopped immediately.\n\nShe thought a bigger shadow might hold more water. She returned both benches to their original spots and watched one patch of rain start again. Then she realized the other bench had been indoors until morning. Only a shadow that caught droplets during yesterday's storm could release them today.\n\nLina marked the benches that had been outside with pieces of chalk. By evening, the neighbors had moved them beside the driest gardens. Nobody could make rain from nothing, but they could carry yesterday's rain to the plants that needed it most.",
+      "scenes": [
+        {
+          "line": "Rain fell beneath just one bench.",
+          "image_prompt": "park wide view catches thin rain beneath a bench against sunny paving"
+        },
+        {
+          "line": "Lina moved it toward her flowers.",
+          "image_prompt": "park side view follows yellow jacket beside bench and dried flowers"
+        },
+        {
+          "line": "Its shadow carried the rain along.",
+          "image_prompt": "park low view of a moving shadow beside a flower bed"
+        },
+        {
+          "line": "She dragged over a second bench.",
+          "image_prompt": "park wide view of Lina pushing a second bench toward seedlings"
+        },
+        {
+          "line": "Where they touched, the rain stopped.",
+          "image_prompt": "park ground view frames two touching shadows and dry paving stones"
+        },
+        {
+          "line": "Lina pulled the benches apart again.",
+          "image_prompt": "park medium view of two benches separated beside a green path"
+        },
+        {
+          "line": "Only yesterday's outdoor bench still rained.",
+          "image_prompt": "park close view contrasts dripping outdoor wood with dry indoor wood"
+        },
+        {
+          "line": "The shadows had stored yesterday's storm.",
+          "image_prompt": "park overhead view of a bench shadow reaching narrow soil beds"
+        },
+        {
+          "line": "She marked every rain carrying bench.",
+          "image_prompt": "park side view shows Lina marking a row of wooden benches"
+        },
+        {
+          "line": "Then the whole garden got watered.",
+          "image_prompt": "park wide evening view of neighbors and benches beside bright flowers"
+        }
+      ],
+      "hero": "yellow jacket, gray trousers, black hair"
     }
   ],
   "kingdom": [
@@ -189,6 +237,54 @@
           "image_prompt": "market one shared market fills stalls beside the restored bridge"
         }
       ]
+    },
+    {
+      "title": "The Kingdom With Two Opening Bells",
+      "description": "Two towns share one market street. A bell and a chalkboard give both room to trade.",
+      "full_story": "Two hill towns used the same narrow market street. Every Saturday, the bread carts came down from the east at sunrise while the potters pulled their loaded carts up from the west. The first carts always met at the corner. Nobody could turn around without unloading everything, so both towns lost the best part of the morning.\n\nMira asked who needed to arrive first. The bakers wanted to sell their bread while it was warm. The potters mostly cared that their heavy carts could make the climb before the crowd filled the street. The answer was to let the bakers enter first while customers waited outside the market.\n\nMira asked the bell keeper to ring once for bread, twice for pottery, then open the market after the last cart cleared the corner. She hung the order on a chalkboard by the gate. The first week, bread was still warm at opening and every pot reached its stall intact.",
+      "scenes": [
+        {
+          "line": "Every Saturday, their carts got stuck.",
+          "image_prompt": "market wide morning view of two carts facing a narrow corner"
+        },
+        {
+          "line": "Bread rolled down the eastern hill.",
+          "image_prompt": "street low view of a baker cart coming down stone paving"
+        },
+        {
+          "line": "Pottery climbed from the other side.",
+          "image_prompt": "street side view shows pottery cart climbing toward the same market"
+        },
+        {
+          "line": "Nobody could turn that tight corner.",
+          "image_prompt": "market overhead view of two carts squeezed between close wooden stalls"
+        },
+        {
+          "line": "Mira asked what each town needed.",
+          "image_prompt": "market medium view of blue jacket speaking to two cart owners"
+        },
+        {
+          "line": "Warm bread first. Safe pottery second.",
+          "image_prompt": "market close view contrasts bread loaves and fragile pots on carts"
+        },
+        {
+          "line": "One bell let the bakers in.",
+          "image_prompt": "market wide view of bread carts moving through the empty lane"
+        },
+        {
+          "line": "Two bells cleared the potters' path.",
+          "image_prompt": "street low angle shows a pottery cart continuing around the corner"
+        },
+        {
+          "line": "The chalkboard told customers when to enter.",
+          "image_prompt": "market close view of a chalkboard at the entrance beside Mira"
+        },
+        {
+          "line": "Both towns opened together after all.",
+          "image_prompt": "market wide view of customers entering between bread and pottery stalls"
+        }
+      ],
+      "hero": "blue jacket, brown trousers, brown hair"
     }
   ],
   "town": [
@@ -285,6 +381,54 @@
           "image_prompt": "park a green sapling grows beside an open gravel seating area"
         }
       ]
+    },
+    {
+      "title": "The Library That Shelved Empty Books",
+      "description": "A blank book gets its own shelf. Ivo finds out why the librarian keeps sending it back.",
+      "full_story": "Ivo brought a blank book to the library because he thought someone had abandoned it in the park. The librarian checked it in without opening a page and placed it on the returns shelf. The next morning, Ivo saw exactly the same book back on the same bench. This time, a fresh strip of blue thread stuck out of the spine.\n\nHe asked three neighbors if they had written in it. Each said the pages were blank, but a tailor recognized the blue thread as a mark her apprentice left whenever he repaired a torn binding. Ivo looked at the other books on the returns shelf. Several had different colors of thread tucked inside.\n\nThe blank book was a sample that beginners practiced on before repairing borrowed books. Leaving it on the bench let apprentices hand it along after work. Ivo added green thread that afternoon and brought it to the bench himself.",
+      "scenes": [
+        {
+          "line": "The library kept shelving a blank book.",
+          "image_prompt": "library close view of teal jacket holding a blank bound book"
+        },
+        {
+          "line": "Then it returned to Ivo's bench.",
+          "image_prompt": "park morning view of the same book waiting on wooden seating"
+        },
+        {
+          "line": "A blue thread poked from inside.",
+          "image_prompt": "park tight view of blue thread extending from the book spine"
+        },
+        {
+          "line": "Nobody had written a single word.",
+          "image_prompt": "park close view of two neighbors examining the completely blank pages"
+        },
+        {
+          "line": "A tailor recognized the fresh stitching.",
+          "image_prompt": "market medium view of tailor examining blue thread beside fabric stall"
+        },
+        {
+          "line": "Her apprentice marked each repair that way.",
+          "image_prompt": "market close view of a trainee patching another torn book spine"
+        },
+        {
+          "line": "Other books had different colored threads.",
+          "image_prompt": "library wide view of shelves and books with colored thread ends"
+        },
+        {
+          "line": "The blank one was for practice.",
+          "image_prompt": "library medium view of Ivo comparing patched practice book and returns"
+        },
+        {
+          "line": "Ivo learned to stitch one binding.",
+          "image_prompt": "library close view of the teal jacket threading a green needle"
+        },
+        {
+          "line": "Then he left the book outside.",
+          "image_prompt": "park evening wide view of Ivo setting repaired book on bench"
+        }
+      ],
+      "hero": "teal jacket, black trousers, black hair"
     }
   ],
   "power": [
@@ -381,6 +525,54 @@
           "image_prompt": "park green seedlings line the shaded side of a glass greenhouse"
         }
       ]
+    },
+    {
+      "title": "The Power That Followed One Color",
+      "description": "Ren can make one colour glow at a time. A missing stall number shows what that limit is good for.",
+      "full_story": "Ren found out she could make a color glow while waiting for her aunt to close a paint stall. She touched a blue pot, and every blue surface within a few steps began to shine. As soon as she touched a yellow brush, every blue object went dark and all the yellow surfaces lit up instead.\n\nThe next evening, a visitor asked how to find stall seven. The numbers had faded, and there was no time to repaint them before closing. Ren tried making the yellow number glow. Half the market lit up, including dozens of yellow awnings that told the visitor nothing.\n\nRen remembered that the stall owner had painted violet stripes on the rear of his delivery crates. She flipped a crate around at each turn in the narrow lane. When she touched the nearest stripe, the violet markers drew a clear path to the hidden stall.",
+      "scenes": [
+        {
+          "line": "Ren could light up any color.",
+          "image_prompt": "market close view of orange jacket beside three painted pots"
+        },
+        {
+          "line": "One touch made every blue shine.",
+          "image_prompt": "market wide view of blue pots and fabric glowing between stalls"
+        },
+        {
+          "line": "Yellow switched the blue off immediately.",
+          "image_prompt": "market close view contrasts dim blue pots with bright yellow brush"
+        },
+        {
+          "line": "A visitor couldn't find stall seven.",
+          "image_prompt": "market dusk view of confused visitor near worn stall numbers"
+        },
+        {
+          "line": "Ren lit the yellow number first.",
+          "image_prompt": "market close view of marked wood glowing beside orange sleeve"
+        },
+        {
+          "line": "Every yellow awning lit up too.",
+          "image_prompt": "market wide view of glowing yellow awnings along the lane"
+        },
+        {
+          "line": "She remembered the vendor's violet crates.",
+          "image_prompt": "market medium view of violet stripes on stacked delivery crates"
+        },
+        {
+          "line": "Ren turned one at every corner.",
+          "image_prompt": "market low view of striped crates marking the three lane turns"
+        },
+        {
+          "line": "Only violet showed where to go.",
+          "image_prompt": "market wide overhead view of violet stripes along dark market lane"
+        },
+        {
+          "line": "The visitor finally found stall seven.",
+          "image_prompt": "market evening view of visitor and stall owner beside glowing crate"
+        }
+      ],
+      "hero": "orange jacket, gray trousers, brown hair"
     }
   ],
   "mystery": [
@@ -477,6 +669,54 @@
           "image_prompt": "library the counter bell sits still beside a closed wooden notebook"
         }
       ]
+    },
+    {
+      "title": "Who Locked the Library From Inside",
+      "description": "The library door bolted itself every evening. Tessa puts one piece of chalk beside the lock.",
+      "full_story": "For three evenings, the library's side door bolted itself after closing. The librarian could still open the front door, but nobody ever saw someone leave through it. Tessa found a fresh scratch on the underside of the latch. She also noticed that a thin cord from the window shade reached farther down than it should.\n\nShe marked the sliding bolt with chalk, pulled the shade cord, and watched the bolt creep forward. But pulling the cord by itself did not finish the job. The scratch showed where the cord only caught if the window was pushed fully open.\n\nTessa asked the librarian what happened every evening at closing. He opened that window to let the day heat out and left it propped open while he swept the front steps. When the breeze tugged the shade, its long cord slid the bolt shut. They shortened the cord and watched the door stay unlocked the next evening.",
+      "scenes": [
+        {
+          "line": "The library bolt moved after closing.",
+          "image_prompt": "library dusk view shows shut door beside empty book shelves"
+        },
+        {
+          "line": "The librarian found nobody inside afterward.",
+          "image_prompt": "library wide view shows librarian checking empty aisles at dusk"
+        },
+        {
+          "line": "Tessa spotted a scratch below it.",
+          "image_prompt": "library close view of scratch underneath the sliding door bolt"
+        },
+        {
+          "line": "A shade cord hung unusually low.",
+          "image_prompt": "library side view shows loose cord reaching down beside the latch"
+        },
+        {
+          "line": "She chalked the bolt and pulled.",
+          "image_prompt": "library close view shows Tessa marking bolt beside dangling cord"
+        },
+        {
+          "line": "It moved, then stopped halfway shut.",
+          "image_prompt": "library tight view of chalk mark partly hidden in door bracket"
+        },
+        {
+          "line": "An open window shifted the cord.",
+          "image_prompt": "library side angle shows open window beside cord touching the bolt"
+        },
+        {
+          "line": "The evening breeze finished the job.",
+          "image_prompt": "library medium view shows a lifted shade and fully shut bolt"
+        },
+        {
+          "line": "Tessa tied the shade cord shorter.",
+          "image_prompt": "library close view of a hand tying the cord up higher"
+        },
+        {
+          "line": "The empty library stopped locking itself.",
+          "image_prompt": "library wide evening view shows clear doorway after the breeze"
+        }
+      ],
+      "hero": "red jacket, black trousers, brown hair"
     }
   ],
   "analysis": [
@@ -575,6 +815,54 @@
         }
       ],
       "topic_id": "spy-comedy"
+    },
+    {
+      "title": "When Magic Is Something You Learn",
+      "description": "Coco's discovery changes what makes a witch. An interpretation of the premise of Witch Hat Atelier.",
+      "full_story": "In Witch Hat Atelier, Coco grows up thinking magic belongs to people who are born able to use it. Watching Qifrey reveals that there is a method she can observe. That change matters because a skill can be learned, tested, or misunderstood. There is a difference between being allowed into a world and being able to understand how it works.\n\nThe publisher's reading guide describes a mistake Coco makes after discovering the tools she needs. That mistake helps explain why the premise is about responsibility as much as access. A tool can expand what a person can do before they understand all the consequences.\n\nMy reading is that the story makes teaching part of the adventure. If magic were only a birthright, the big question would be who happens to have it. Once there is a method, the question becomes who can learn it, who can teach it, and what those teachers choose to explain.",
+      "scenes": [
+        {
+          "line": "What if magic could be learned?",
+          "image_prompt": "original symbolic ink circle on paper beside a dark desk"
+        },
+        {
+          "line": "Coco thinks witches are born different.",
+          "image_prompt": "original silhouettes divided by a bright doorway in a library"
+        },
+        {
+          "line": "Watching Qifrey shows her a method.",
+          "image_prompt": "original anonymous silhouette observes an abstract diagram across a desk"
+        },
+        {
+          "line": "Now there is something to study.",
+          "image_prompt": "original symbolic notebook opens under a single warm candle light"
+        },
+        {
+          "line": "But access and understanding are different.",
+          "image_prompt": "original open door beside a complex diagram on a stand"
+        },
+        {
+          "line": "Coco can act before she's ready.",
+          "image_prompt": "original symbolic hand reaches across an unfinished diagram at dusk"
+        },
+        {
+          "line": "The publisher's guide describes her mistake.",
+          "image_prompt": "original stack of books beside a cracked stone illustration"
+        },
+        {
+          "line": "To me, that makes teaching central.",
+          "image_prompt": "original symbolic lantern illuminates two workspaces from the center"
+        },
+        {
+          "line": "Who learns depends on who teaches.",
+          "image_prompt": "original silhouettes share a desk and study different symbolic patterns"
+        },
+        {
+          "line": "Getting access is only the beginning.",
+          "image_prompt": "original open notebook and ink mark framed beyond an archway"
+        }
+      ],
+      "topic_id": "witch-learning"
     }
   ]
 }

@@ -164,6 +164,10 @@ def identity(manifest):
     return "title:" + hashlib.sha256(normalized.encode()).hexdigest()
 
 
+def production_records():
+    return [json.loads(path.read_text()) for path in LEDGER.glob("*.json")]
+
+
 def already_reserved(kind, slot, key, manifest, records):
     return any(
         record["slot"] == slot or record.get("content_key") == key
@@ -216,8 +220,7 @@ def publish(kind, slot):
         if QUOTA.exists() and quota_active(json.loads(QUOTA.read_text()), datetime.now(timezone.utc)):
             print("YouTube quota is paused until its daily reset")
             return
-        records = [json.loads(path.read_text()) for path in LEDGER.glob("*.json")]
-        if already_reserved(kind, slot, key, manifest, records):
+        if already_reserved(kind, slot, key, manifest, production_records()):
             print("Slot or content already reserved")
             return
         now = datetime.now(CALGARY)
