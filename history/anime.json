@@ -1,73 +1,81 @@
 {
- "episodes": [
-  {
-   "title": "Black Clover Recap #1: Powerless to King?",
-   "kind": "recap",
-   "work": "Black Clover"
-  },
-  {
-   "title": "Jujutsu Kaisen What If: What If the Cursed Mirror Fell into One Student's Mouth?",
-   "kind": "whatif",
-   "work": "Jujutsu Kaisen"
-  },
-  {
-   "title": "Lord of the Mysteries Recap #1: Forbidden Breath: A Modern Man's Steampunk Awakening",
-   "kind": "recap",
-   "work": "Lord of the Mysteries"
-  },
-  {
-   "title": "Shadow Slave What If: Dreamgate's Shadow: A Nightmarish WhatIf",
-   "kind": "whatif",
-   "work": "Shadow Slave"
-  },
-  {
-   "title": "Jujutsu Kaisen Recap #1: When a cursed relic reshapes a student's destiny",
-   "kind": "recap",
-   "work": "Jujutsu Kaisen"
-  },
-  {
-   "title": "Black Clover What If: When Void Meets the Dragon's Heart",
-   "kind": "whatif",
-   "work": "Black Clover"
-  },
-  {
-   "title": "Jujutsu Kaisen What If: Echoes of the Mirror Gate",
-   "kind": "whatif",
-   "work": "Jujutsu Kaisen"
-  },
-  {
-   "title": "Lord of the Mysteries What If: When Fog Judges the Dead Detective",
-   "kind": "whatif",
-   "work": "Lord of the Mysteries"
-  }
- ],
- "works": {
-  "Black Clover": 1,
-  "Lord of the Mysteries": 1,
-  "Jujutsu Kaisen": 1
- },
- "log": {
-  "Black Clover": [
-   {
-    "n": 1,
-    "summary": "Follow a grimoireless orphan and his lightningswift rival as they clash with fate to rise to glory. Their first steps set the spark for a kingdom's destiny."
-   }
+  "episodes": [
+    {
+      "title": "Black Clover Recap #1: Powerless to King?",
+      "kind": "recap",
+      "work": "Black Clover"
+    },
+    {
+      "title": "Jujutsu Kaisen What If: What If the Cursed Mirror Fell into One Student's Mouth?",
+      "kind": "whatif",
+      "work": "Jujutsu Kaisen"
+    },
+    {
+      "title": "Lord of the Mysteries Recap #1: Forbidden Breath: A Modern Man's Steampunk Awakening",
+      "kind": "recap",
+      "work": "Lord of the Mysteries"
+    },
+    {
+      "title": "Shadow Slave What If: Dreamgate's Shadow: A Nightmarish WhatIf",
+      "kind": "whatif",
+      "work": "Shadow Slave"
+    },
+    {
+      "title": "Jujutsu Kaisen Recap #1: When a cursed relic reshapes a student's destiny",
+      "kind": "recap",
+      "work": "Jujutsu Kaisen"
+    },
+    {
+      "title": "Black Clover What If: When Void Meets the Dragon's Heart",
+      "kind": "whatif",
+      "work": "Black Clover"
+    },
+    {
+      "title": "Jujutsu Kaisen What If: Echoes of the Mirror Gate",
+      "kind": "whatif",
+      "work": "Jujutsu Kaisen"
+    },
+    {
+      "title": "Lord of the Mysteries What If: When Fog Judges the Dead Detective",
+      "kind": "whatif",
+      "work": "Lord of the Mysteries"
+    },
+    {
+      "title": "Dr. STONE: Why Knowledge Becomes the Treasure",
+      "kind": "analysis",
+      "work": "Dr. STONE",
+      "topic_id": "stone-science",
+      "reserve_id": "Why Knowledge Becomes the Treasure"
+    }
   ],
-  "Lord of the Mysteries": [
-   {
-    "n": 1,
-    "summary": "A modern soul awakens in a Victoriansteampunk city where breathing requires a potion. He races against secret forces to find the elixir that might restore his past."
-   }
-  ],
-  "Jujutsu Kaisen": [
-   {
-    "n": 1,
-    "summary": "A cursed relic forces a student into a hidden war. The narrative shows how ordinary choices ignite extraordinary conflicts."
-   }
+  "works": {
+    "Black Clover": 1,
+    "Lord of the Mysteries": 1,
+    "Jujutsu Kaisen": 1
+  },
+  "log": {
+    "Black Clover": [
+      {
+        "n": 1,
+        "summary": "Follow a grimoireless orphan and his lightningswift rival as they clash with fate to rise to glory. Their first steps set the spark for a kingdom's destiny."
+      }
+    ],
+    "Lord of the Mysteries": [
+      {
+        "n": 1,
+        "summary": "A modern soul awakens in a Victoriansteampunk city where breathing requires a potion. He races against secret forces to find the elixir that might restore his past."
+      }
+    ],
+    "Jujutsu Kaisen": [
+      {
+        "n": 1,
+        "summary": "A cursed relic forces a student into a hidden war. The narrative shows how ordinary choices ignite extraordinary conflicts."
+      }
+    ]
+  },
+  "recent_stories": [
+    "A cursed mirror in the school's forbidden wing devours anyone who meets its gaze. A cloaked freshman, known only by the scar that glows when curses gather, volunteers to seal the relic, hoping to protect his classmates. He steps into the hallway where the mirror hangs, its surface rippling with unseen dread. Midnight training grounds echo with whispers as a rival school drops a broken talisman, which erupts into blind curses that swarm the corridor. The scar on his chest flares, drawing the curses like moths to flame, and he discovers a faint rune etched into the dust beneath the mirror's base, pulsing azure. The rune reveals the mirror is a gateway, not a curse, and the only way to stop the onslaught is to step through and seal the portal from the other side. He hesitates, the air trembling with unknown power, as the hallway darkens around him.",
+    "Grey fog hung like a judge over the streets, its tendrils whispering of unfinished business. Zhou Mingrui opened his eyes in Klein Moretti's worn coat, the world's steam hiss louder than his own pulse. The city's brass towers glinted, but a cold, unseen presence pressed against his mind, demanding answers. He followed the echo to a floating platform above the gray ceiling, where a violet door flickered like a heartbeat. The fog's voice instructed him to summon two strangers from the mist. When the silhouettes emerged, they recognized each other as the missing members of the secret Tarot Club, each bearing a sealed artifact. The door opened, revealing an ancient tomb stone etched with Klein's name-his own burial site. The realization hit: the fog was a lingering echo of his death, using the summoned allies to rewrite the past. As the mist thickened, the club faced a choice: accept the fatal loop or shatter it with the Beyonder potion.",
+    "In Dr. STONE, humanity turns to stone. Taiju awakens thousands of years later and reunites with Senku, who wants to restore civilization through science. That is the setup. What interests me is how it makes the ability to explain a useful idea feel as valuable as finding a tool. A rebuilding story gives basic knowledge a job. Instead of hearing that a character is clever, we can ask whether someone else could understand the reasoning and put it to use. In my reading, that makes a scientific explanation part of the adventure. It gives the audience a way to follow progress even if the details are unfamiliar. It also changes what counts as a treasure. An object can help whoever holds it. An idea can help a whole group once it can be explained and shared. That difference is what gives this premise its energy for me."
   ]
- },
- "recent_stories": [
-  "A cursed mirror in the school's forbidden wing devours anyone who meets its gaze. A cloaked freshman, known only by the scar that glows when curses gather, volunteers to seal the relic, hoping to protect his classmates. He steps into the hallway where the mirror hangs, its surface rippling with unseen dread. Midnight training grounds echo with whispers as a rival school drops a broken talisman, which erupts into blind curses that swarm the corridor. The scar on his chest flares, drawing the curses like moths to flame, and he discovers a faint rune etched into the dust beneath the mirror's base, pulsing azure. The rune reveals the mirror is a gateway, not a curse, and the only way to stop the onslaught is to step through and seal the portal from the other side. He hesitates, the air trembling with unknown power, as the hallway darkens around him.",
-  "Grey fog hung like a judge over the streets, its tendrils whispering of unfinished business. Zhou Mingrui opened his eyes in Klein Moretti's worn coat, the world's steam hiss louder than his own pulse. The city's brass towers glinted, but a cold, unseen presence pressed against his mind, demanding answers. He followed the echo to a floating platform above the gray ceiling, where a violet door flickered like a heartbeat. The fog's voice instructed him to summon two strangers from the mist. When the silhouettes emerged, they recognized each other as the missing members of the secret Tarot Club, each bearing a sealed artifact. The door opened, revealing an ancient tomb stone etched with Klein's name-his own burial site. The realization hit: the fog was a lingering echo of his death, using the summoned allies to rewrite the past. As the mist thickened, the club faced a choice: accept the fatal loop or shatter it with the Beyonder potion."
- ]
 }
