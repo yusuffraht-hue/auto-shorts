@@ -242,12 +242,12 @@ def caption_font_size(text):
     return max(24, min(76, int(available_width / (estimated_width_per_character * length))))
 
 
-def make_clip(i, scene, hero, seed, style):
+def make_clip(i, scene, hero, seed, style, *, denoise=8):
     img, aud, clip = OUT / f"s{i}.jpg", OUT / f"s{i}.mp3", OUT / f"s{i}.mp4"
     prompt = f"{scene['image_prompt']}. Composition: {SHOT_COMPOSITIONS[i % len(SHOT_COMPOSITIONS)]}. Visual anchor: {hero}. {style}"
     shot = OUT / f"shot_{i}.png"
     if shot.exists():
-        img, pre = shot, "nlmeans=s=8:p=7:r=15,"  # Blender still: smooth render grain
+        img, pre = shot, f"nlmeans=s={denoise}:p=7:r=15,"
     else:
         if os.environ.get("LOCAL_MEDIA_ONLY") == "1":
             raise RuntimeError(f"Missing local illustration for scene {i + 1}")
@@ -300,10 +300,11 @@ def blender_stills(data):
         print("blender stills failed, using AI images:", repr(e)[:200])
 
 
-def build_video(data):
+def build_video(data, *, denoise=8):
     hero = data.get("hero") or "a friendly blocky toy character with a bright jacket"
     seed = random.randint(1, 10**6)  # one seed for the whole video keeps the look consistent
-    clips = [make_clip(i, s, hero, seed, data["style"]) for i, s in enumerate(data["scenes"])]
+    clips = [make_clip(i, s, hero, seed, data["style"], denoise=denoise)
+             for i, s in enumerate(data["scenes"])]
     lst = OUT / "list.txt"
     lst.write_text("".join(f"file '{c.name}'\n" for c in clips))
     final = OUT / "final.mp4"
@@ -393,9 +394,10 @@ if __name__ == "__main__":
         for index, scene in enumerate(data["scenes"]):
             illustrate(OUT / f"shot_{index}.png", "ANIME & NOVEL STORIES",
                        data["title"], scene["line"], index)
+        video = build_video(data)
     else:
         blender_stills(data)
-    video = build_video(data)
+        video = build_video(data, denoise=24)
     dry_run = os.environ.get("DRY_RUN", "false").lower() == "true"
     if dry_run:
         print("DRY RUN: video generated but not uploaded; history was not changed.")
